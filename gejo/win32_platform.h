@@ -1,10 +1,6 @@
 #if !defined(WIN32_PLATFORM_H)
 #define WIN32_PLATFORM_H
 
-#ifndef Assert
-#define Assert(X)
-#endif
-
 #include <stdio.h> // vsprintf_s
 
 #include <gejo/gejo_base.h> // PlatformAPI
@@ -220,10 +216,6 @@ void win32_debug_print(const char* format, ...)
 ///////////////////////////////////////////////////////////////////////////
 // Audio API
 ///////////////////////////////////////////////////////////////////////////
-// Requires a defined global
-// Win32XAudio2 g_win32_xaudio2
-//
-
 #include <xaudio2.h>
 struct Win32XAudio2
 {

@@ -1,5 +1,5 @@
-#if !defined(GEJO_H)
-#define GEJO_H
+#if !defined(GEJO_BASE_H)
+#define GEJO_BASE_H
 
 ///////////////////////////////////////////////////////////////////////////
 // Types
@@ -271,14 +271,13 @@ struct VertexSpecification
     size_t               total_size;
 };
 
-// TODO: använd detta istället för "void*" i VertexBuffer...
-struct PlatformBufferInfo
+#define SHADER_BUFFER_NAME "ShaderBuffer"
+struct ShaderState
 {
     void* platform;
 };
 
-#define SHADER_BUFFER_NAME "ShaderBuffer"
-struct ShaderState
+struct ShaderBuffer
 {
     void* platform;
 };
@@ -291,8 +290,6 @@ enum VertexBufferUsage
 
 struct VertexBuffer
 {
-    u32 vertex_count;
-    size_t vertex_size;
     size_t size;
     void* platform;
 };
@@ -314,23 +311,21 @@ struct CubeMap
     void* platform;
 };
 
-typedef PlatformBufferInfo CreatePlatformBufferInfo();
-typedef b32                DeletePlatformBufferInfo(PlatformBufferInfo buffer_info);
-typedef PlatformBufferInfo CreateShaderBuffer(size_t buffer_size);
-typedef b32                DeleteShaderBuffer(PlatformBufferInfo buffer_info);
-typedef void               WriteToShaderBuffer(PlatformBufferInfo shader_buffer, size_t offset, size_t size, void* src); 
-typedef ShaderState        CreateShader(const char* file_name, PlatformBufferInfo* buffer_info, VertexSpecification input_layout);
-typedef b32                DeleteShader(ShaderState shader_state);
-typedef VertexBuffer       CreateVertexBuffer(size_t buffer_size, u8* data, PlatformBufferInfo buffer_info, VertexSpecification vertex_spec, VertexBufferUsage usage);
-typedef b32                DeleteVertexBuffer(VertexBuffer vertex_buffer);
-typedef void               WriteToVertexBuffer(VertexBuffer vertex_buffer, size_t offset, size_t size, u8* src);
-typedef IndexBuffer        CreateIndexBuffer(u32 index_count, size_t index_size, PlatformBufferInfo buffer_info);
-typedef b32                DeleteIndexBuffer(IndexBuffer index_buffer);
-typedef void               WriteToIndexBuffer(IndexBuffer index_buffer, size_t offset, size_t size, u16* src);
-typedef Texture            LoadTexture(const char* color_texture, const char* normal_map_texture);
-typedef b32                UnloadTexture(Texture texture);
-typedef CubeMap            LoadCubeMap(const char* positive_z, const char* negative_z, const char* positive_y, const char* negative_y, const char* positive_x, const char* negative_x);
-typedef b32                UnloadCubeMap(CubeMap cube_map);
+typedef ShaderBuffer CreateShaderBuffer(size_t buffer_size);
+typedef b32          DeleteShaderBuffer(ShaderBuffer shader_buffer);
+typedef void         WriteToShaderBuffer(ShaderBuffer shader_buffer, size_t offset, size_t size, void* src); 
+typedef ShaderState  CreateShader(const char* file_name, ShaderBuffer* shader_buffer, VertexSpecification input_layout);
+typedef b32          DeleteShader(ShaderState shader_state);
+typedef VertexBuffer CreateVertexBuffer(size_t buffer_size, u8* data, VertexBufferUsage usage);
+typedef b32          DeleteVertexBuffer(VertexBuffer vertex_buffer);
+typedef void         WriteToVertexBuffer(VertexBuffer vertex_buffer, size_t offset, size_t size, u8* src);
+typedef IndexBuffer  CreateIndexBuffer(u32 index_count, size_t index_size);
+typedef b32          DeleteIndexBuffer(IndexBuffer index_buffer);
+typedef void         WriteToIndexBuffer(IndexBuffer index_buffer, size_t offset, size_t size, u16* src);
+typedef Texture      LoadTexture(const char* color_texture, const char* normal_map_texture);
+typedef b32          UnloadTexture(Texture texture);
+typedef CubeMap      LoadCubeMap(const char* positive_z, const char* negative_z, const char* positive_y, const char* negative_y, const char* positive_x, const char* negative_x);
+typedef b32          UnloadCubeMap(CubeMap cube_map);
 
 ///////////////////////////////////////////////////////////////////////////
 // PlatformAPI
@@ -370,8 +365,6 @@ struct PlatformAPI
     {
         struct
         {
-            CreatePlatformBufferInfo* create_platform_buffer_info;
-            DeletePlatformBufferInfo* delete_platform_buffer_info;
             CreateShaderBuffer*       create_shader_buffer;
             DeleteShaderBuffer*       delete_shader_buffer;
             WriteToShaderBuffer*      write_to_shader_buffer;
@@ -388,7 +381,7 @@ struct PlatformAPI
             LoadCubeMap*              load_cube_map;
             UnloadCubeMap*            unload_cube_map;
         };
-        void* graphics_api[17];
+        void* graphics_api[15];
     };
     
     // Memory

@@ -9,6 +9,16 @@
 #define WIN32_EXE_FILE_NAME NULL
 #endif
 
+global_variable int64_t         g_perf_count_frequency;
+global_variable WINDOWPLACEMENT g_window_pos = {sizeof(g_window_pos)};
+struct Win32App
+{
+    HWND window;
+    HDC device_context;
+    V2u window_dimensions;
+};
+global_variable Win32App        g_win32_app;
+
 V2u win32_get_window_dimension(HWND window)
 {
     V2u result = {};
@@ -133,6 +143,35 @@ void win32_load_dll(Win32HotLoadedDLL* dll)
         dll->hmodule = LoadLibraryA(tmp_dll_path);
         Assert(dll->hmodule);
     }
+}
+
+void win32_init_window(HINSTANCE instance, WNDPROC window_proc)
+{
+    WNDCLASSA window_class = {};
+    window_class.style = CS_VREDRAW | CS_HREDRAW;
+    window_class.lpfnWndProc = window_proc;
+    window_class.hInstance = instance;
+    window_class.hCursor = LoadCursor(0, IDC_ARROW);
+    window_class.lpszClassName = "MusicStudio";
+
+    Assert(RegisterClassA(&window_class));
+
+    g_win32_app.window = CreateWindowExA(
+        0,
+        window_class.lpszClassName,
+        "AudioGame",
+        WS_VISIBLE | WS_OVERLAPPEDWINDOW,
+        0,
+        0,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        0,
+        0,
+        instance,
+        0);
+    Assert(g_win32_app.window);
+
+    g_win32_app.device_context = GetDC(g_win32_app.window);
 }
 
 #endif

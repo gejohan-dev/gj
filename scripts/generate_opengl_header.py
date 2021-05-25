@@ -7,9 +7,10 @@
 import re
 
 import sys
-assert(len(sys.argv) == 3)
-loader_file = sys.argv[1]
+assert(len(sys.argv) == 4)
+loader_file  = sys.argv[1]
 defines_file = sys.argv[2]
+defs_file    = sys.argv[3]
 
 header_guard = """#if !defined(OPENGL_H)
 #define OPENGL_H\n"""
@@ -23,7 +24,9 @@ typedef u32 GLuint;
 typedef u8 GLubyte;
 """
 
-with open("opengl_defs.gen", "r") as opengl_defs_file:
+global_opengl = "global_variable OpenGL g_opengl = {};\n"
+
+with open(defs_file, "r") as opengl_defs_file:
 
     opengl_defs = opengl_defs_file.read()
     opengl_defs_file.seek(0)
@@ -83,6 +86,7 @@ with open("opengl_defs.gen", "r") as opengl_defs_file:
     union += "\t};\n};\n"
 
     output += union
+    output += global_opengl
     output += header_endif
 
     with open(defines_file, "w") as header_file:

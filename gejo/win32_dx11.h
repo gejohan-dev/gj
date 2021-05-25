@@ -16,7 +16,7 @@ struct Win32DX11
     ID3D11RasterizerState*   rasterizer_state;
     ID3D11DepthStencilState* depth_stencil_state;
     ID3D11DepthStencilView*  depth_buffer_view;
-#if SANDBOX_DEBUG
+#if GEJO_DEBUG
     ID3D11Debug*             debug_context;
 #endif
 };
@@ -51,11 +51,9 @@ win32_init_directx11_render_views(ID3D11Device* device, IDXGISwapChain* swap_cha
     depth_buffer->Release();
 }
 
-internal Win32DX11
+internal void
 win32_init_directx11(HWND window)
 {
-    Win32DX11 result = {};
-    
     D3D_FEATURE_LEVEL levels[] = {
         D3D_FEATURE_LEVEL_11_1,
         D3D_FEATURE_LEVEL_11_0,
@@ -65,7 +63,7 @@ win32_init_directx11(HWND window)
     D3D_FEATURE_LEVEL actual_level;
     
     u32 device_flags = 0;
-#if SANDBOX_DEBUG
+#if GEJO_DEBUG
     device_flags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
@@ -77,17 +75,17 @@ win32_init_directx11(HWND window)
         levels,                     // List of feature levels this app can support.
         ArrayCount(levels),         // Size of the list above.
         D3D11_SDK_VERSION,          // Always set this to D3D11_SDK_VERSION for Windows Store apps.
-        &result.device,             // Returns the Direct3D device created.
+        &g_win32_dx11.device,             // Returns the Direct3D device created.
         &actual_level,              // Returns feature level of device created.
-        &result.device_context      // Returns the device immediate context.
+        &g_win32_dx11.device_context      // Returns the device immediate context.
     );
     Assert(SUCCEEDED(hr));
 
-#if SANDBOX_DEBUG
-    hr = result.device->QueryInterface(__uuidof(ID3D11Debug), (void**)&result.debug_context);
+#if GEJO_DEBUG
+    hr = g_win32_dx11.device->QueryInterface(__uuidof(ID3D11Debug), (void**)&g_win32_dx11.debug_context);
     Assert(SUCCEEDED(hr));
     ID3D11InfoQueue* debug_queue;
-    hr = result.debug_context->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&debug_queue);
+    hr = g_win32_dx11.debug_context->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&debug_queue);
     Assert(SUCCEEDED(hr));
     debug_queue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
     debug_queue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR,      true);
@@ -115,7 +113,7 @@ win32_init_directx11(HWND window)
         IDXGIFactory* factory;
         {
             IDXGIDevice* dxgi_device;
-            hr = result.device->QueryInterface(__uuidof(IDXGIDevice), (void **)&dxgi_device);
+            hr = g_win32_dx11.device->QueryInterface(__uuidof(IDXGIDevice), (void **)&dxgi_device);
             Assert(SUCCEEDED(hr));
     
             IDXGIAdapter* adapter;
@@ -129,9 +127,9 @@ win32_init_directx11(HWND window)
         }
         
         hr = factory->CreateSwapChain(
-            result.device,
+            g_win32_dx11.device,
             &desc,
-            &result.swap_chain
+            &g_win32_dx11.swap_chain
         );
         factory->Release();
         Assert(SUCCEEDED(hr));
@@ -142,8 +140,8 @@ win32_init_directx11(HWND window)
 
     // ID3D11RenderTargetView
     // ID3D11DepthStencilView
-    win32_init_directx11_render_views(result.device, result.swap_chain,
-                                      &result.frame_buffer_view, &result.depth_buffer_view);
+    win32_init_directx11_render_views(g_win32_dx11.device, g_win32_dx11.swap_chain,
+                                      &g_win32_dx11.frame_buffer_view, &g_win32_dx11.depth_buffer_view);
     
     // ID3D11RasterizerState
     {
@@ -151,7 +149,7 @@ win32_init_directx11(HWND window)
         rasterizer_desc.FillMode = D3D11_FILL_SOLID;
         rasterizer_desc.CullMode = D3D11_CULL_BACK;
         rasterizer_desc.FrontCounterClockwise = false;
-        hr = result.device->CreateRasterizerState(&rasterizer_desc, &result.rasterizer_state);
+        hr = g_win32_dx11.device->CreateRasterizerState(&rasterizer_desc, &g_win32_dx11.rasterizer_state);
         Assert(SUCCEEDED(hr));
     }
 
@@ -161,11 +159,9 @@ win32_init_directx11(HWND window)
         depth_stencil_desc.DepthEnable = true;
         depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
         depth_stencil_desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-        hr = result.device->CreateDepthStencilState(&depth_stencil_desc, &result.depth_stencil_state);
+        hr = g_win32_dx11.device->CreateDepthStencilState(&depth_stencil_desc, &g_win32_dx11.depth_stencil_state);
         Assert(SUCCEEDED(hr));
     }
-        
-    return result;
 }
 
 #endif

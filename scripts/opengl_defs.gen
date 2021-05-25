@@ -81,6 +81,7 @@ glDepthMask
 glDepthRangedNV
 glDetachShader
 glDisable
+glDisableVertexAttribArray
 glDrawArrays
 glDrawArraysInstanced
 glDrawElements

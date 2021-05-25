@@ -43,7 +43,7 @@ struct Win32OpenGL
 };
 
 internal Win32OpenGL
-win32_init_opengl(HDC device_ctx)
+win32_create_opengl_context(HDC device_ctx)
 {
     Win32OpenGL result = {};
 
