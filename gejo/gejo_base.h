@@ -245,89 +245,6 @@ typedef void        SubmitSoundBuffer(SoundBuffer sound_buffer);
 typedef u32         GetRemainingSamples(SoundBuffer sound_buffer);
 
 ///////////////////////////////////////////////////////////////////////////
-// Graphics API
-///////////////////////////////////////////////////////////////////////////
-#if GEJO_DEBUG
-typedef void               GraphicsDebugAssert();
-#endif
-enum ShaderUniformType
-{
-    ShaderUniformType_M4x4,
-    ShaderUniformType_V3f
-};
-
-enum VertexComponentType
-{
-    VertexComponentType_f32,
-    VertexComponentType_Instanced_f32
-};
-
-struct VertexSpecification
-{
-    u32                  component_count;
-    char**               component_name;
-    size_t*              component_size;
-    VertexComponentType* component_type;
-    size_t               total_size;
-};
-
-#define SHADER_BUFFER_NAME "ShaderBuffer"
-struct ShaderState
-{
-    void* platform;
-};
-
-struct ShaderBuffer
-{
-    void* platform;
-};
-
-enum VertexBufferUsage
-{
-    VertexBufferUsage_ManyUpdates,
-    VertexBufferUsage_NotManyUpdates
-};
-
-struct VertexBuffer
-{
-    size_t size;
-    void* platform;
-};
-
-struct IndexBuffer
-{
-    u32 index_count;
-    size_t size;
-    void* platform;
-};
-
-struct Texture
-{
-    void* platform;
-};
-
-struct CubeMap
-{
-    void* platform;
-};
-
-typedef ShaderBuffer CreateShaderBuffer(size_t buffer_size);
-typedef b32          DeleteShaderBuffer(ShaderBuffer shader_buffer);
-typedef void         WriteToShaderBuffer(ShaderBuffer shader_buffer, size_t offset, size_t size, void* src); 
-typedef ShaderState  CreateShader(const char* file_name, ShaderBuffer* shader_buffer, VertexSpecification input_layout);
-typedef b32          DeleteShader(ShaderState shader_state);
-typedef VertexBuffer CreateVertexBuffer(size_t buffer_size, u8* data, VertexBufferUsage usage);
-typedef b32          DeleteVertexBuffer(VertexBuffer vertex_buffer);
-typedef void         WriteToVertexBuffer(VertexBuffer vertex_buffer, size_t offset, size_t size, u8* src);
-typedef IndexBuffer  CreateIndexBuffer(u32 index_count, size_t index_size);
-typedef b32          DeleteIndexBuffer(IndexBuffer index_buffer);
-typedef void         WriteToIndexBuffer(IndexBuffer index_buffer, size_t offset, size_t size, u16* src);
-typedef Texture      LoadTexture(const char* color_texture, const char* normal_map_texture);
-typedef b32          UnloadTexture(Texture texture);
-typedef CubeMap      LoadCubeMap(const char* positive_z, const char* negative_z, const char* positive_y, const char* negative_y, const char* positive_x, const char* negative_x);
-typedef b32          UnloadCubeMap(CubeMap cube_map);
-
-///////////////////////////////////////////////////////////////////////////
 // PlatformAPI
 ///////////////////////////////////////////////////////////////////////////
 struct PlatformAPI
@@ -355,44 +272,11 @@ struct PlatformAPI
     CreatesoundBuffer*        create_sound_buffer;
     SubmitSoundBuffer*        submit_sound_buffer;
     GetRemainingSamples*      get_remaining_samples;
-    
-    // Graphics API
-#if GEJO_DEBUG
-    GraphicsDebugAssert* graphics_debug_assert;
-#endif
-
-    union
-    {
-        struct
-        {
-            CreateShaderBuffer*       create_shader_buffer;
-            DeleteShaderBuffer*       delete_shader_buffer;
-            WriteToShaderBuffer*      write_to_shader_buffer;
-            CreateShader*             create_shader;
-            DeleteShader*             delete_shader;
-            CreateVertexBuffer*       create_vertex_buffer;
-            DeleteVertexBuffer*       delete_vertex_buffer;
-            WriteToVertexBuffer*      write_to_vertex_buffer;
-            CreateIndexBuffer*        create_index_buffer;
-            DeleteIndexBuffer*        delete_index_buffer;
-            WriteToIndexBuffer*       write_to_index_buffer;
-            LoadTexture*              load_texture;
-            UnloadTexture*            unload_texture;
-            LoadCubeMap*              load_cube_map;
-            UnloadCubeMap*            unload_cube_map;
-        };
-        void* graphics_api[15];
-    };
-    
+        
     // Memory
     void* memory;
         
     b32 should_update_window_size;
 };
-
-#define VerifyGraphicsAPI()                                             \
-    do {                                                                \
-        for (u32 i = 0; i < ArrayCount(g_platform_api.graphics_api); i++) { Assert(g_platform_api.graphics_api[i]); } \
-    } while(false)
 
 #endif

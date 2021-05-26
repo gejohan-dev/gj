@@ -4,6 +4,10 @@
 #     "c:/path/to/file_with_wglGetProcAddress"^
 #     "c:/path/to/file_that_should_contain_definitions"
 
+import os 
+dir_path = os.path.dirname(os.path.realpath(__file__))
+dir_path = os.path.join(dir_path, "..")
+
 import re
 
 import sys
@@ -33,7 +37,8 @@ with open(defs_file, "r") as opengl_defs_file:
     
     glcorearb_defines = []
     glcorearb_typedefs = []
-    with open("e:\Documents\gejo\libs\glcorearb.h", "r") as glcorearb_file:
+
+    with open(os.path.join(dir_path, "libs\\glcorearb.h"), "r") as glcorearb_file:
         for line in glcorearb_file:
             if line.startswith("#define"): glcorearb_defines.append(line)
             elif line.startswith("GLAPI"):
