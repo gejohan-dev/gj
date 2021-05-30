@@ -214,8 +214,22 @@ M4x4 M4x4_inverse_model_view_matrix(M4x4 model_view_matrix, V3f camera_pos)
     return result;
 }
 
+M4x4 M4x4_fixed_forward_matrix(V3f camera_pos)
+{
+    M4x4 result = M4x4_identity();
+    M4x4_apply_translate(result, -camera_pos.x, -camera_pos.y, camera_pos.z);
+    return result;
+}
+
+M4x4 M4x4_inverse_fixed_forward_matrix(M4x4 fixed_forward_matrix, V3f camera_pos)
+{
+    M4x4 result = M4x4_identity();
+    M4x4_apply_translate(result, camera_pos.x, camera_pos.y, -camera_pos.z);
+    return result;
+}
+
 M4x4 M4x4_projection_matrix(f32 field_of_view_degrees, f32 aspect_w_over_h,
-                       f32 near_plane, f32 far_plane)
+                            f32 near_plane, f32 far_plane)
 {
     M4x4 result = M4x4_identity();
     f32 t = tan(field_of_view_degrees * DEG_TO_RAD / 2.0f);
@@ -268,8 +282,8 @@ f32 ray_plane_collision(V3f v0, V3f v1, V3f v2,
 
 // https://cadxfem.org/inf/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf
 b32 ray_triangle_intersection(V3f v0, V3f v1, V3f v2,
-                          V3f ray_origin, V3f ray_direction,
-                          V3f* pos)
+                              V3f ray_origin, V3f ray_direction,
+                              V3f* pos)
 {
     f32 epsilon = 0.000001f;
     V3f edge1 = V3_sub(v1, v0);

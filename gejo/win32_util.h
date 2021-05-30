@@ -89,7 +89,12 @@ win32_get_last_write_time(const char* file_name)
     return result;
 }
 
-void win32_build_exe_file_path(char* path, const char* file_name)
+///////////////////////////////////////////////////////////////////////////
+// win32_build_exe_file_path
+// Builds the path
+// c:\Path\To\exe_file_location\file_name
+///////////////////////////////////////////////////////////////////////////
+void win32_build_exe_file_path(char* output_path, const char* file_name)
 {
     char exe_base_path[BUFFER_SIZE];
     size_t exe_base_path_length = GetModuleFileNameA(NULL, exe_base_path, ArrayCount(exe_base_path));
@@ -100,25 +105,25 @@ void win32_build_exe_file_path(char* path, const char* file_name)
     // Note: Cut-off the exe file name
     exe_base_path[exe_base_path_length] = '\0';
 
-    memcpy(path, exe_base_path, exe_base_path_length);
+    memcpy(output_path, exe_base_path, exe_base_path_length);
     size_t file_name_length = strlen(file_name);
-    memcpy(path + exe_base_path_length, file_name, file_name_length);
-    path[exe_base_path_length + file_name_length] = '\0';
+    memcpy(output_path + exe_base_path_length, file_name, file_name_length);
+    output_path[exe_base_path_length + file_name_length] = '\0';
 }
 
 struct Win32HotLoadedDLL
 {
-    u32 tmp_dll_number;
-    char* lock_file_name;
-    char* dll_file_name;
+    char*    dll_file_path;
+    char*    lock_file_path;
+    u32      tmp_dll_number;
     FILETIME last_write_time;
-    HMODULE hmodule;
+    HMODULE  hmodule;
 };
 
 b32 win32_check_new_dll(Win32HotLoadedDLL dll)
 {
     b32 result;
-    FILETIME latest_write_time = win32_get_last_write_time(dll.dll_file_name);
+    FILETIME latest_write_time = win32_get_last_write_time(dll.dll_file_path);
     // Note: 1 = First file time (latest_write_time) is later than second file time (dll.last_write_time).
     result = CompareFileTime(&latest_write_time, &dll.last_write_time) == 1;
     return result;
@@ -127,7 +132,7 @@ b32 win32_check_new_dll(Win32HotLoadedDLL dll)
 void win32_load_dll(Win32HotLoadedDLL* dll)
 {
     char _ignored[BUFFER_SIZE];
-    if (!GetFileAttributesExA(dll->lock_file_name, GetFileExInfoStandard, &_ignored))
+    if (!GetFileAttributesExA(dll->lock_file_path, GetFileExInfoStandard, &_ignored))
     {
         // Note: This is done to not lock the dll for writing and
         //       also keep old dlls since the program could be
@@ -137,12 +142,19 @@ void win32_load_dll(Win32HotLoadedDLL* dll)
         sprintf_s(unique_tmp_file_name, ArrayCount(unique_tmp_file_name), "tmp%d.dll", dll->tmp_dll_number);
         dll->tmp_dll_number++;
         win32_build_exe_file_path(tmp_dll_path, unique_tmp_file_name);
-        Assert(CopyFileA(dll->dll_file_name, tmp_dll_path, FALSE));
+        Assert(CopyFileA(dll->dll_file_path, tmp_dll_path, FALSE));
         
-        dll->last_write_time = win32_get_last_write_time(dll->dll_file_name);
+        dll->last_write_time = win32_get_last_write_time(dll->dll_file_path);
         dll->hmodule = LoadLibraryA(tmp_dll_path);
         Assert(dll->hmodule);
     }
+}
+
+void win32_load_dll(Win32HotLoadedDLL* dll, char* dll_file_path, char* lock_file_path)
+{
+    dll->dll_file_path  = dll_file_path;
+    dll->lock_file_path = lock_file_path;
+    win32_load_dll(dll);
 }
 
 void win32_init_window(HINSTANCE instance, WNDPROC window_proc)

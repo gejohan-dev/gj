@@ -19,7 +19,9 @@ typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
-    
+
+typedef u8 one_byte;
+
 #define internal static
 #define local_persist static
 #define global_variable static
@@ -275,8 +277,13 @@ struct PlatformAPI
         
     // Memory
     void* memory;
+    size_t memory_size;
         
     b32 should_update_window_size;
+    u32 window_width;
+    u32 window_height;
 };
+
+global_variable PlatformAPI g_platform_api;
 
 #endif

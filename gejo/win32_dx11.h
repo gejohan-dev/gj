@@ -16,6 +16,7 @@ struct Win32DX11
     ID3D11RasterizerState*   rasterizer_state;
     ID3D11DepthStencilState* depth_stencil_state;
     ID3D11DepthStencilView*  depth_buffer_view;
+    ID3D11BlendState*        blend_state;
 #if GEJO_DEBUG
     ID3D11Debug*             debug_context;
 #endif
@@ -52,7 +53,7 @@ win32_init_directx11_render_views(ID3D11Device* device, IDXGISwapChain* swap_cha
 }
 
 internal void
-win32_init_directx11(HWND window)
+win32_init_directx11(HWND window, b32 disable_alt_enter_fullscreen = true)
 {
     D3D_FEATURE_LEVEL levels[] = {
         D3D_FEATURE_LEVEL_11_1,
@@ -67,31 +68,35 @@ win32_init_directx11(HWND window)
     device_flags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-    HRESULT hr = D3D11CreateDevice(
-        NULL,                       // Specify nullptr to use the default adapter.
-        D3D_DRIVER_TYPE_HARDWARE,   // Create a device using the hardware graphics driver.
-        0,                          // Should be 0 unless the driver is D3D_DRIVER_TYPE_SOFTWARE.
-        device_flags,               // Set flags.
-        levels,                     // List of feature levels this app can support.
-        ArrayCount(levels),         // Size of the list above.
-        D3D11_SDK_VERSION,          // Always set this to D3D11_SDK_VERSION for Windows Store apps.
-        &g_win32_dx11.device,             // Returns the Direct3D device created.
-        &actual_level,              // Returns feature level of device created.
-        &g_win32_dx11.device_context      // Returns the device immediate context.
-    );
-    Assert(SUCCEEDED(hr));
+    {
+        HRESULT hr = D3D11CreateDevice(
+            NULL,                       // Specify nullptr to use the default adapter.
+            D3D_DRIVER_TYPE_HARDWARE,   // Create a device using the hardware graphics driver.
+            0,                          // Should be 0 unless the driver is D3D_DRIVER_TYPE_SOFTWARE.
+            device_flags,               // Set flags.
+            levels,                     // List of feature levels this app can support.
+            ArrayCount(levels),         // Size of the list above.
+            D3D11_SDK_VERSION,          // Always set this to D3D11_SDK_VERSION for Windows Store apps.
+            &g_win32_dx11.device,             // Returns the Direct3D device created.
+            &actual_level,              // Returns feature level of device created.
+            &g_win32_dx11.device_context      // Returns the device immediate context.
+        );
+        Assert(SUCCEEDED(hr));
+    }
 
 #if GEJO_DEBUG
-    hr = g_win32_dx11.device->QueryInterface(__uuidof(ID3D11Debug), (void**)&g_win32_dx11.debug_context);
-    Assert(SUCCEEDED(hr));
-    ID3D11InfoQueue* debug_queue;
-    hr = g_win32_dx11.debug_context->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&debug_queue);
-    Assert(SUCCEEDED(hr));
-    debug_queue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
-    debug_queue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR,      true);
-    // debug_queue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING,    true);
-    debug_queue->Release();
-    // debug_context->Release();
+    {
+        HRESULT hr = g_win32_dx11.device->QueryInterface(__uuidof(ID3D11Debug), (void**)&g_win32_dx11.debug_context);
+        Assert(SUCCEEDED(hr));
+        ID3D11InfoQueue* debug_queue;
+        hr = g_win32_dx11.debug_context->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&debug_queue);
+        Assert(SUCCEEDED(hr));
+        debug_queue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
+        debug_queue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR,      true);
+        // debug_queue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING,    true);
+        debug_queue->Release();
+        // debug_context->Release();
+    }
 #endif
 
     // IDXGISwapChain
@@ -113,7 +118,7 @@ win32_init_directx11(HWND window)
         IDXGIFactory* factory;
         {
             IDXGIDevice* dxgi_device;
-            hr = g_win32_dx11.device->QueryInterface(__uuidof(IDXGIDevice), (void **)&dxgi_device);
+            HRESULT hr = g_win32_dx11.device->QueryInterface(__uuidof(IDXGIDevice), (void **)&dxgi_device);
             Assert(SUCCEEDED(hr));
     
             IDXGIAdapter* adapter;
@@ -125,8 +130,8 @@ win32_init_directx11(HWND window)
             adapter->GetParent(IID_PPV_ARGS(&factory));
             adapter->Release();
         }
-        
-        hr = factory->CreateSwapChain(
+
+        HRESULT hr = factory->CreateSwapChain(
             g_win32_dx11.device,
             &desc,
             &g_win32_dx11.swap_chain
@@ -149,7 +154,7 @@ win32_init_directx11(HWND window)
         rasterizer_desc.FillMode = D3D11_FILL_SOLID;
         rasterizer_desc.CullMode = D3D11_CULL_BACK;
         rasterizer_desc.FrontCounterClockwise = false;
-        hr = g_win32_dx11.device->CreateRasterizerState(&rasterizer_desc, &g_win32_dx11.rasterizer_state);
+        HRESULT hr = g_win32_dx11.device->CreateRasterizerState(&rasterizer_desc, &g_win32_dx11.rasterizer_state);
         Assert(SUCCEEDED(hr));
     }
 
@@ -159,7 +164,48 @@ win32_init_directx11(HWND window)
         depth_stencil_desc.DepthEnable = true;
         depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
         depth_stencil_desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-        hr = g_win32_dx11.device->CreateDepthStencilState(&depth_stencil_desc, &g_win32_dx11.depth_stencil_state);
+        HRESULT hr = g_win32_dx11.device->CreateDepthStencilState(&depth_stencil_desc, &g_win32_dx11.depth_stencil_state);
+        Assert(SUCCEEDED(hr));
+    }
+
+#if 0
+    // ID3D11BlendState
+    {
+        D3D11_RENDER_TARGET_BLEND_DESC render_target_blend_desc;
+        render_target_blend_desc.BlendEnable = true;
+        render_target_blend_desc.SrcBlend    = D3D11_BLEND_SRC_COLOR;
+        render_target_blend_desc.DestBlend   = D3D11_BLEND_BLEND_FACTOR;
+        render_target_blend_desc.BlendOp     = D3D11_BLEND_OP_ADD;
+        render_target_blend_desc.SrcBlendAlpha = D3D11_BLEND_ONE;
+        render_target_blend_desc.DestBlendAlpha = D3D11_BLEND_ONE;
+        render_target_blend_desc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+        render_target_blend_desc.RenderTargetWriteMask = D3D10_COLOR_WRITE_ENABLE_ALL;
+  
+        D3D11_BLEND_DESC blend_desc;
+        blend_desc.AlphaToCoverageEnable  = false;
+        blend_desc.IndependentBlendEnable = false;
+        blend_desc.RenderTarget[0] = render_target_blend_desc;
+
+        g_win32_dx11.device->CreateBlendState(&blend_desc, &g_win32_dx11.blend_state);
+    }
+#endif
+    
+    // Disable Alt+Enter fullscreen toggle, if using win32_toggle_fullscreen(window) for example
+    if (disable_alt_enter_fullscreen)
+    {
+        IDXGIDevice* dxgi_device;
+        HRESULT hr = g_win32_dx11.device->QueryInterface(__uuidof(IDXGIDevice), (void **)&dxgi_device);
+        Assert(SUCCEEDED(hr));
+
+        IDXGIAdapter* dxgi_adapter;
+        hr = dxgi_device->GetParent(__uuidof(IDXGIAdapter), (void **)&dxgi_adapter);
+        Assert(SUCCEEDED(hr));
+        
+        IDXGIFactory* dxgi_factory;
+        hr = dxgi_adapter->GetParent(__uuidof(IDXGIFactory), (void **)&dxgi_factory);
+        Assert(SUCCEEDED(hr));
+        
+        hr = dxgi_factory->MakeWindowAssociation(window, DXGI_MWA_NO_ALT_ENTER);
         Assert(SUCCEEDED(hr));
     }
 }

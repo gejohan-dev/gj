@@ -2,14 +2,13 @@
 #define WIN32_PLATFORM_H
 
 #include <stdio.h> // vsprintf_s
+#include <malloc.h>
 
 #include <gejo/gejo_base.h> // PlatformAPI
 
 ///////////////////////////////////////////////////////////////////////////
 // OS API
 ///////////////////////////////////////////////////////////////////////////
-global_variable PlatformAPI g_platform_api;
-
 PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
 {
     PlatformFileHandle result = {};
@@ -116,7 +115,11 @@ PlatformFileListing* win32_list_files(MemoryArena* memory_arena, const char* fil
 
 void* win32_allocate_memory(size_t size)
 {
-    /* void* result = VirtualAlloc(NULL, size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE); */
+#if 0
+    void* result = VirtualAlloc(NULL, size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+#endif
+    
+#if 0
     void* result = HeapAlloc(GetProcessHeap(),
                              HEAP_ZERO_MEMORY
                              | HEAP_NO_SERIALIZE
@@ -125,6 +128,8 @@ void* win32_allocate_memory(size_t size)
 #endif
                              ,
                              size);
+#endif
+    void* result = malloc(size);
     Assert(result);
     return result;
 }
@@ -133,10 +138,13 @@ void win32_deallocate_memory(void* memory)
 {
     if (memory)
     {
+#if 0
         // NOTE: https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree
         // If the dwFreeType parameter (third) is MEM_RELEASE, this parameter (second) must be 0 (zero).
         /* Assert(VirtualFree(memory, 0, MEM_RELEASE)); */
         Assert(HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, memory));
+#endif
+        free(memory);
     }
 }
 
