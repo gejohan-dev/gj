@@ -307,4 +307,18 @@ b32 ray_triangle_intersection(V3f v0, V3f v1, V3f v2,
     return true;
 }
 
+b32 ray_rectangle_intersection(V3f min_min_pos, V3f max_max_pos,
+                               V3f ray_origin, V3f ray_direction,
+                               V3f* pos)
+{
+    b32 result;
+    V3f max_min_pos = min_min_pos;
+    max_min_pos.x = max_max_pos.x;
+    V3f min_max_pos = min_min_pos;
+    min_max_pos.y = max_max_pos.y;
+    result = (ray_triangle_intersection(min_min_pos, min_max_pos, max_max_pos, ray_origin, ray_direction, pos) |
+              ray_triangle_intersection(min_min_pos, max_max_pos, max_min_pos, ray_origin, ray_direction, pos));
+    return result;
+}
+
 #endif
