@@ -132,6 +132,12 @@ void initialize_arena(MemoryArena* arena, size_t size, u8* base)
     arena->used = 0;
 }
 
+void clear_arena(MemoryArena* arena)
+{
+    memset(arena->base, 0, arena->size);
+    arena->used = 0;
+}
+
 #define zero_struct(struct_instance) zero_size(sizeof(struct_instance), &(struct_instance))
 inline void
 zero_size(size_t size_bytes, void* ptr)

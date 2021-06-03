@@ -3,7 +3,8 @@
 
 #define PI_F32 3.141592f
 #define E_F32  2.7182818284f
-#define DEG_TO_RAD PI_F32 / 180.0f
+#define DEG_TO_RAD (PI_F32 / 180.0f)
+#define RAD_TO_DEG (1.0f / DEG_TO_RAD)
 
 // TODO: Replace some stuff from here?
 #include "math.h"
@@ -51,14 +52,19 @@ V3(f, f32);
     }
 V4(f, f32);
 
-inline V2f V2_add      (V2f v0, V2f v1)             { return {v0.x + v1.x, v0.y + v1.y}; }
-inline V2f V2_sub      (V2f v0, V2f v1)             { return {v0.x - v1.x, v0.y - v1.y}; }
-inline V2f V2_mul      (f32 c, V2f v)               { return {c * v.x, c * v.y}; }
-inline V2f V2_div      (f32 x, V2f v)               { return {x / v.x, x / v.y}; }
-inline f32 V2_length   (V2f v0)                     { return sqrt(v0.x * v0.x + v0.y * v0.y); }
-inline f32 V2_length   (f32 x, f32 y)               { return sqrt(x * x + y * y); }
-inline V2f V2_normalize(V2f v0)                     { f32 l = V2_length(v0); return {v0.x / l, v0.y / l}; }
-inline f32 V2_dot      (V2f v0, V2f v1)             { return v0.x * v1.x + v0.y * v1.y; }
+inline V2f V2_add              (V2f v0, V2f v1)   { return {v0.x + v1.x, v0.y + v1.y}; }
+inline V2f V2_sub              (V2f v0, V2f v1)   { return {v0.x - v1.x, v0.y - v1.y}; }
+inline V2f V2_mul              (f32 c, V2f v)     { return {c * v.x, c * v.y}; }
+inline V2f V2_div              (f32 x, V2f v)     { return {x / v.x, x / v.y}; }
+inline f32 V2_length           (V2f v0)           { return sqrt(v0.x * v0.x + v0.y * v0.y); }
+inline f32 V2_length           (f32 x, f32 y)     { return sqrt(x * x + y * y); }
+inline V2f V2_normalize        (V2f v0)           { f32 l = V2_length(v0); return {v0.x / l, v0.y / l}; }
+inline f32 V2_dot              (V2f v0, V2f v1)   { return v0.x * v1.x + v0.y * v1.y; }
+inline V3f V2_to_V3            (V2f v, f32 z)     { return {v.x, v.y, z}; }
+inline V2f V2_reflect          (V2f v, V2f n)     { return V2_sub(v, V2_mul(2.0f, V2_mul(V2_dot(v, n), n))); }
+inline f32 V2_get_angle        (V2f v, V2f u)     { return acosf(V2_dot(v, u) / (V2_length(v) * V2_length(u))); }
+inline f32 V2_get_angle_x_axis (V2f v)            { return V2_get_angle(v, {1.0f, 0.0f}); }
+inline V2f V2_rotate           (V2f v, f32 a)     { return {V2_dot(v, {cos(a), -sin(a)}), V2_dot(v, {sin(a), cos(a)})}; }
 
 inline V3f V3_add      (V3f v0, V3f v1)             { return {v0.x + v1.x, v0.y + v1.y, v0.z + v1.z}; }
 inline V3f V3_add      (V3f v0, f32 c)              { return {v0.x + c, v0.y + c, v0.z + c}; }
