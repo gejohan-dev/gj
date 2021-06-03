@@ -53,6 +53,8 @@ V4(f, f32);
 
 inline V2f V2_add      (V2f v0, V2f v1)             { return {v0.x + v1.x, v0.y + v1.y}; }
 inline V2f V2_sub      (V2f v0, V2f v1)             { return {v0.x - v1.x, v0.y - v1.y}; }
+inline V2f V2_mul      (f32 c, V2f v)               { return {c * v.x, c * v.y}; }
+inline V2f V2_div      (f32 x, V2f v)               { return {x / v.x, x / v.y}; }
 inline f32 V2_length   (V2f v0)                     { return sqrt(v0.x * v0.x + v0.y * v0.y); }
 inline f32 V2_length   (f32 x, f32 y)               { return sqrt(x * x + y * y); }
 inline V2f V2_normalize(V2f v0)                     { f32 l = V2_length(v0); return {v0.x / l, v0.y / l}; }
@@ -69,6 +71,7 @@ inline V3f V3_mul      (f32 x1, f32 y1, f32 z1,
 inline V3f V3_mul      (f32 c, V3f v0)              { return {c * v0.x, c * v0.y, c * v0.z}; }
 inline V3f V3_mul      (V3f v0, f32 c)              { return V3_mul(c, v0); }
 inline V3f V3_mul      (f32 x, f32 y, f32 z, f32 c) { return {c * x, c * y, c * z}; }
+inline V3f V3_div      (f32 x, V3f v)               { return {x / v.x, x / v.y, x / v.z}; }
 inline V3f V3_normalize(V3f v0)                     { f32 l = V3_length(v0); return {v0.x / l, v0.y / l, v0.z / l}; }
 inline f32 V3_dot      (V3f v0, V3f v1)             { return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z; }
 inline V3f V3_cross    (V3f v0, V3f v1)             { return {v0.y * v1.z - v0.z * v1.y, v0.z * v1.x - v0.x * v1.z, v0.x * v1.y - v0.y * v1.x}; }
@@ -138,12 +141,12 @@ inline void M4x4_apply_translate(M4x4& m, V3f v) { M4x4_apply_translate(m, v.x, 
 inline void
 M4x4_apply_transpose(M4x4& m)
 {
-    SwapArray(m.a, f32, 1,  4);
-    SwapArray(m.a, f32, 2,  8);
-    SwapArray(m.a, f32, 3,  12);
-    SwapArray(m.a, f32, 6,  9);
-    SwapArray(m.a, f32, 7,  13);
-    SwapArray(m.a, f32, 11, 14);
+    Gejo_SwapArray(m.a, f32, 1,  4);
+    Gejo_SwapArray(m.a, f32, 2,  8);
+    Gejo_SwapArray(m.a, f32, 3,  12);
+    Gejo_SwapArray(m.a, f32, 6,  9);
+    Gejo_SwapArray(m.a, f32, 7,  13);
+    Gejo_SwapArray(m.a, f32, 11, 14);
 }
 
 inline void M4x4_apply_rotate_x(M4x4& m, f32 angle_degrees)
@@ -254,6 +257,25 @@ M4x4 M4x4_inverse_projection_matrix(M4x4 projection_matrix)
     f32 inv_d = 1.0f / projection_matrix.a[11];
     result.a[14] = inv_d;
     result.a[15] = inv_d * projection_matrix.a[10];
+    return result;
+}
+
+M4x4 M4x4_orthographic_matrix(f32 width, f32 height,
+                              f32 near_plane, f32 far_plane)
+{
+    M4x4 result = M4x4_identity();
+    result.a[0] = 2.0f / width;
+    result.a[5] = 2.0f / height;
+    result.a[10] = -2.0f / (far_plane - near_plane);
+    result.a[3]  = -1.0f;
+    result.a[7]  = -1.0f;
+    result.a[11] = -1.0f;
+    return result;
+}
+
+M4x4 M4x4_inverse_orthographic_matrix(M4x4 orthographic_matrix)
+{
+    M4x4 result = M4x4_identity();
     return result;
 }
 
