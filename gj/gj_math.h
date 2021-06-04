@@ -65,6 +65,7 @@ inline V2f V2_reflect          (V2f v, V2f n)     { return V2_sub(v, V2_mul(2.0f
 inline f32 V2_get_angle        (V2f v, V2f u)     { return acosf(V2_dot(v, u) / (V2_length(v) * V2_length(u))); }
 inline f32 V2_get_angle_x_axis (V2f v)            { return V2_get_angle(v, {1.0f, 0.0f}); }
 inline V2f V2_rotate           (V2f v, f32 a)     { return {V2_dot(v, {cos(a), -sin(a)}), V2_dot(v, {sin(a), cos(a)})}; }
+inline V2f V2_rotate_90        (V2f v)            { return {-v.y, v.x}; }
 
 inline V3f V3_add      (V3f v0, V3f v1)             { return {v0.x + v1.x, v0.y + v1.y, v0.z + v1.z}; }
 inline V3f V3_add      (V3f v0, f32 c)              { return {v0.x + c, v0.y + c, v0.z + c}; }
