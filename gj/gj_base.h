@@ -53,8 +53,8 @@ typedef u8 one_byte;
 
 #define BUFFER_SIZE 512
 
-#define Gj_SwapVar(type, x, y) do {##type __tmp = x; x = y; y = __tmp;} while(false)
-#define Gj_SwapArray(array, type, i, j) do {##type __tmp = array[i]; array[i] = array[j]; array[j] = __tmp;} while(false)
+#define gj_SwapVar(type, x, y) do {##type __tmp = x; x = y; y = __tmp;} while(false)
+#define gj_SwapArray(array, type, i, j) do {##type __tmp = array[i]; array[i] = array[j]; array[j] = __tmp;} while(false)
 
 #if defined(GJ_DEBUG) && defined(_MSC_VER)
 #define brk do { int ______ = 0; ______++; } while(false)
