@@ -1,0 +1,2 @@
+scripts/generate_opengl_header.py
+pull down "glcorearb.h" from the web
