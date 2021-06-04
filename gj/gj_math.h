@@ -1,5 +1,5 @@
-#if !defined(GEJO_MATH_H)
-#define GEJO_MATH_H
+#if !defined(GJ_MATH_H)
+#define GJ_MATH_H
 
 #define PI_F32 3.141592f
 #define E_F32  2.7182818284f
@@ -9,9 +9,9 @@
 // TODO: Replace some stuff from here?
 #include "math.h"
 
-#define Gejo_Max(a, b)  (((a) > (b)) ? (a) : (b))
-#define Gejo_Min(a, b)  (((a) < (b)) ? (a) : (b))
-#define Gejo_Abs(x) (((x)<0) ? -(x) : (x))
+#define gj_Max(a, b)  (((a) > (b)) ? (a) : (b))
+#define gj_Min(a, b)  (((a) < (b)) ? (a) : (b))
+#define gj_Abs(x) (((x)<0) ? -(x) : (x))
 
 inline f32 sqrt(f32 x)        { return sqrtf(x); }
 inline u32 pow2(u32 x)        { return (u32)powf(2,(f32)x); }
@@ -25,7 +25,7 @@ inline f32 tan(f32 x) { return tanf(x); }
 
 inline f32 clamp(f32 min, f32 value, f32 max) { return value < min ? min : (value > max ? max : value); }
 inline f32 lerp(f32 a, f32 b, f32 x) { return (1.0f - x) * a + x * b; }
-inline f32 normalize(f32 a, f32 b, f32 x) { return Gejo_Min(1.0f, Gejo_Max(0.0f, (x - a) / (b - a))); }
+inline f32 normalize(f32 a, f32 b, f32 x) { return gj_Min(1.0f, gj_Max(0.0f, (x - a) / (b - a))); }
 
 // Vectors
 #define V2(name, type)                          \
@@ -147,12 +147,12 @@ inline void M4x4_apply_translate(M4x4& m, V3f v) { M4x4_apply_translate(m, v.x, 
 inline void
 M4x4_apply_transpose(M4x4& m)
 {
-    Gejo_SwapArray(m.a, f32, 1,  4);
-    Gejo_SwapArray(m.a, f32, 2,  8);
-    Gejo_SwapArray(m.a, f32, 3,  12);
-    Gejo_SwapArray(m.a, f32, 6,  9);
-    Gejo_SwapArray(m.a, f32, 7,  13);
-    Gejo_SwapArray(m.a, f32, 11, 14);
+    gj_SwapArray(m.a, f32, 1,  4);
+    gj_SwapArray(m.a, f32, 2,  8);
+    gj_SwapArray(m.a, f32, 3,  12);
+    gj_SwapArray(m.a, f32, 6,  9);
+    gj_SwapArray(m.a, f32, 7,  13);
+    gj_SwapArray(m.a, f32, 11, 14);
 }
 
 inline void M4x4_apply_rotate_x(M4x4& m, f32 angle_degrees)

@@ -17,7 +17,7 @@ struct Win32DX11
     ID3D11DepthStencilState* depth_stencil_state;
     ID3D11DepthStencilView*  depth_buffer_view;
     ID3D11BlendState*        blend_state;
-#if GEJO_DEBUG
+#if GJ_DEBUG
     ID3D11Debug*             debug_context;
 #endif
 };
@@ -64,7 +64,7 @@ win32_init_directx11(HWND window, b32 disable_alt_enter_fullscreen = true)
     D3D_FEATURE_LEVEL actual_level;
     
     u32 device_flags = 0;
-#if GEJO_DEBUG
+#if GJ_DEBUG
     device_flags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
@@ -84,7 +84,7 @@ win32_init_directx11(HWND window, b32 disable_alt_enter_fullscreen = true)
         Assert(SUCCEEDED(hr));
     }
 
-#if GEJO_DEBUG
+#if GJ_DEBUG
     {
         HRESULT hr = g_win32_dx11.device->QueryInterface(__uuidof(ID3D11Debug), (void**)&g_win32_dx11.debug_context);
         Assert(SUCCEEDED(hr));

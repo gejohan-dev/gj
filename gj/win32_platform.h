@@ -4,7 +4,7 @@
 #include <stdio.h> // vsprintf_s
 #include <malloc.h>
 
-#include <gejo/gejo_base.h> // PlatformAPI
+#include <gj/gj_base.h> // PlatformAPI
 
 ///////////////////////////////////////////////////////////////////////////
 // OS API
@@ -123,7 +123,7 @@ void* win32_allocate_memory(size_t size)
     void* result = HeapAlloc(GetProcessHeap(),
                              HEAP_ZERO_MEMORY
                              | HEAP_NO_SERIALIZE
-#if GEJO_DEBUG
+#if GJ_DEBUG
                              | HEAP_GENERATE_EXCEPTIONS
 #endif
                              ,
@@ -307,7 +307,7 @@ void win32_init_platform_api(PlatformAPI* platform_api)
     platform_api->check_thread_status        = win32_check_thread_status;
     platform_api->begin_ticket_mutex         = win32_begin_ticket_mutex;
     platform_api->end_ticket_mutex           = win32_end_ticket_mutex;
-#if GEJO_DEBUG
+#if GJ_DEBUG
     platform_api->debug_print                = win32_debug_print;
 #endif
 

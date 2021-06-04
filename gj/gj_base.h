@@ -1,5 +1,5 @@
-#if !defined(GEJO_BASE_H)
-#define GEJO_BASE_H
+#if !defined(GJ_BASE_H)
+#define GJ_BASE_H
 
 ///////////////////////////////////////////////////////////////////////////
 // Types
@@ -53,10 +53,10 @@ typedef u8 one_byte;
 
 #define BUFFER_SIZE 512
 
-#define Gejo_SwapVar(type, x, y) do {##type __tmp = x; x = y; y = __tmp;} while(false)
-#define Gejo_SwapArray(array, type, i, j) do {##type __tmp = array[i]; array[i] = array[j]; array[j] = __tmp;} while(false)
+#define Gj_SwapVar(type, x, y) do {##type __tmp = x; x = y; y = __tmp;} while(false)
+#define Gj_SwapArray(array, type, i, j) do {##type __tmp = array[i]; array[i] = array[j]; array[j] = __tmp;} while(false)
 
-#if defined(GEJO_DEBUG) && defined(_MSC_VER)
+#if defined(GJ_DEBUG) && defined(_MSC_VER)
 #define brk do { int ______ = 0; ______++; } while(false)
 
 #define WIN32_LEAN_AND_MEAN
@@ -189,7 +189,7 @@ struct PlatformFileHandle
 {
     void* handle;
     u32 file_size;
-#if GEJO_DEBUG
+#if GJ_DEBUG
     char* full_file_name;
 #endif
 };
@@ -231,7 +231,7 @@ typedef b32                  WaitForThreads(PlatformThreadContext* threads, u32 
 typedef ThreadStatus         CheckThreadStatus(PlatformThreadContext thread_context);
 typedef void                 BeginTicketMutex(TicketMutex* ticket_mutex);
 typedef void                 EndTicketMutex(TicketMutex* ticket_mutex);
-#if GEJO_DEBUG
+#if GJ_DEBUG
 typedef void                 DebugPrint(const char* format, ...);
 #endif
 
@@ -270,7 +270,7 @@ struct PlatformAPI
     CheckThreadStatus*      check_thread_status;
     BeginTicketMutex*       begin_ticket_mutex;
     EndTicketMutex*         end_ticket_mutex;
-#if GEJO_DEBUG
+#if GJ_DEBUG
     DebugPrint*             debug_print;
 #endif
 
