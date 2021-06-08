@@ -1,33 +1,53 @@
 #if !defined(GJ_MATH_H)
 #define GJ_MATH_H
 
+///////////////////////////////////////////////////////////////////////////
+// Includes
+///////////////////////////////////////////////////////////////////////////
+// TODO: Replace some stuff from here?
+#include "math.h"
+
+///////////////////////////////////////////////////////////////////////////
+// Constants
+///////////////////////////////////////////////////////////////////////////
 #define PI_F32 3.141592f
 #define E_F32  2.7182818284f
 #define DEG_TO_RAD (PI_F32 / 180.0f)
 #define RAD_TO_DEG (1.0f / DEG_TO_RAD)
 
-// TODO: Replace some stuff from here?
-#include "math.h"
-
-#define gj_Max(a, b)  (((a) > (b)) ? (a) : (b))
-#define gj_Min(a, b)  (((a) < (b)) ? (a) : (b))
-#define gj_Abs(x) (((x)<0) ? -(x) : (x))
-
-inline f32 sqrt(f32 x)        { return sqrtf(x); }
-inline u32 pow2(u32 x)        { return (u32)powf(2,(f32)x); }
-inline f32 pow2(f32 x)        { return powf(2,x); }
-inline f32 pow (f32 x, f32 n) { return powf(x,n); }
-
-// Trigonometric functions
-inline f32 sin(f32 x) { return sinf(x); }
-inline f32 cos(f32 x) { return cosf(x); }
-inline f32 tan(f32 x) { return tanf(x); }
+///////////////////////////////////////////////////////////////////////////
+// Bounds
+///////////////////////////////////////////////////////////////////////////
+#define gj_Max(a, b)     (((a) > (b)) ? (a) : (b))
+#define gj_Min(a, b)     (((a) < (b)) ? (a) : (b))
+#define gj_Abs(x)        (((x)<0) ? -(x) : (x))
+#define gj_IsPositive(x) ((x) >= 0)
 
 inline f32 clamp(f32 min, f32 value, f32 max) { return value < min ? min : (value > max ? max : value); }
 inline f32 lerp(f32 a, f32 b, f32 x) { return (1.0f - x) * a + x * b; }
 inline f32 normalize(f32 a, f32 b, f32 x) { return gj_Min(1.0f, gj_Max(0.0f, (x - a) / (b - a))); }
 
+inline b32 unknown_bounds_check(f32 x, f32 a, f32 b) { return x >= gj_Min(a, b) && x < gj_Max(a, b); }
+inline b32 unknown_bounds_check(f32 x, f32 a, f32 b, f32 delta)
+{ return x >= gj_Min(a, b) - delta && x < gj_Max(a, b) + delta; }
+///////////////////////////////////////////////////////////////////////////
+// Common Functions
+///////////////////////////////////////////////////////////////////////////
+inline f32 sqrt(f32 x)        { return sqrtf(x); }
+inline u32 pow2(u32 x)        { return (u32)powf(2,(f32)x); }
+inline f32 pow2(f32 x)        { return powf(2,x); }
+inline f32 pow (f32 x, f32 n) { return powf(x,n); }
+
+///////////////////////////////////////////////////////////////////////////
+// Trigonometric Functions
+///////////////////////////////////////////////////////////////////////////
+inline f32 sin(f32 x) { return sinf(x); }
+inline f32 cos(f32 x) { return cosf(x); }
+inline f32 tan(f32 x) { return tanf(x); }
+
+///////////////////////////////////////////////////////////////////////////
 // Vectors
+///////////////////////////////////////////////////////////////////////////
 #define V2(name, type)                          \
     union V2##name {                            \
         struct { type x;     type y; };         \
@@ -42,6 +62,7 @@ V2(u, u32);
         struct { type x; type y; type z; };     \
         struct { type r; type g; type b; };     \
         type array[3];                          \
+        type xy[2];                             \
     }
 V3(f, f32);
 
@@ -60,12 +81,68 @@ inline f32 V2_length           (V2f v0)           { return sqrt(v0.x * v0.x + v0
 inline f32 V2_length           (f32 x, f32 y)     { return sqrt(x * x + y * y); }
 inline V2f V2_normalize        (V2f v0)           { f32 l = V2_length(v0); return {v0.x / l, v0.y / l}; }
 inline f32 V2_dot              (V2f v0, V2f v1)   { return v0.x * v1.x + v0.y * v1.y; }
-inline V3f V2_to_V3            (V2f v, f32 z)     { return {v.x, v.y, z}; }
 inline V2f V2_reflect          (V2f v, V2f n)     { return V2_sub(v, V2_mul(2.0f, V2_mul(V2_dot(v, n), n))); }
 inline f32 V2_get_angle        (V2f v, V2f u)     { return acosf(V2_dot(v, u) / (V2_length(v) * V2_length(u))); }
 inline f32 V2_get_angle_x_axis (V2f v)            { return V2_get_angle(v, {1.0f, 0.0f}); }
 inline V2f V2_rotate           (V2f v, f32 a)     { return {V2_dot(v, {cos(a), -sin(a)}), V2_dot(v, {sin(a), cos(a)})}; }
 inline V2f V2_rotate_90        (V2f v)            { return {-v.y, v.x}; }
+
+// Transform to other data types
+inline V3f V2_to_V3(V2f v, f32 z)     { return {v.x, v.y, z}; }
+
+internal V2f
+V2_axis_intersect(V2f origin_pos, V2f origin_dir, V2f start, V2f end, f32* t_min)
+{
+    V2f result = {FLT_MAX, FLT_MAX};
+
+    f32 _t = FLT_MAX;
+    if (!t_min) t_min = &_t;
+
+#define UpdateT(Start, CheckAxis, BoundsAxis)                           \
+    do {                                                                \
+        f32 t = (Start - origin_pos.##CheckAxis) / origin_dir.##CheckAxis; \
+        V2f to = V2_add(origin_pos, V2_mul(t, origin_dir));             \
+        if (gj_IsPositive(t) && t < *t_min &&                           \
+            unknown_bounds_check(to.##BoundsAxis, start.##BoundsAxis, end.##BoundsAxis)) *t_min = t; \
+    } while (false)
+
+    UpdateT(start.x, x, y);
+    UpdateT(end.x,   x, y);
+    UpdateT(start.y, y, x);
+    UpdateT(end.y,   y, x);
+
+    result = V2_add(origin_pos, V2_mul(*t_min, origin_dir));
+    
+    return result;
+}
+
+// Note: Comes from
+// https://web.archive.org/web/20060911055655/http://local.wasp.uwa.edu.au/%7Epbourke/geometry/lineline2d/
+internal V2f
+V2_line_line_intersection(V2f line1_p1, V2f line1_p2,
+                          V2f line2_p1, V2f line2_p2)
+{
+    V2f result = {FLT_MAX, FLT_MAX};
+    
+    f32 x1 = line1_p1.x; f32 y1 = line1_p1.y;
+    f32 x2 = line1_p2.x; f32 y2 = line1_p2.y;
+    f32 x3 = line2_p1.x; f32 y3 = line2_p1.y;
+    f32 x4 = line2_p2.x; f32 y4 = line2_p2.y;
+
+    f32 den = (y4-y3)*(x2-x1) - (x4-x3)*(y2-y1);
+    if (den != 0.0f)
+    {
+        f32 ua_num = (x4-x3)*(y1-y3) - (y4-y3)*(x1-x3);
+        f32 ua = ua_num / den;
+        if (ua >= 0.0f)
+        {
+            result.x = x1 + ua * (x2 - x1);
+            result.y = y1 + ua * (y2 - y1);
+        }
+    }
+    
+    return result;
+}
 
 inline V3f V3_add      (V3f v0, V3f v1)             { return {v0.x + v1.x, v0.y + v1.y, v0.z + v1.z}; }
 inline V3f V3_add      (V3f v0, f32 c)              { return {v0.x + c, v0.y + c, v0.z + c}; }
@@ -83,6 +160,9 @@ inline V3f V3_normalize(V3f v0)                     { f32 l = V3_length(v0); ret
 inline f32 V3_dot      (V3f v0, V3f v1)             { return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z; }
 inline V3f V3_cross    (V3f v0, V3f v1)             { return {v0.y * v1.z - v0.z * v1.y, v0.z * v1.x - v0.x * v1.z, v0.x * v1.y - v0.y * v1.x}; }
 
+// Transform to other data types
+inline V2f V3_to_V2(V3f v)     { return {v.x, v.y}; }
+
 V3f V3_triangle_normal(V3f p1, V3f p2, V3f p3)
 {
     V3f result = {};    
@@ -93,7 +173,9 @@ V3f V3_triangle_normal(V3f p1, V3f p2, V3f p3)
     return result;
 }
 
+///////////////////////////////////////////////////////////////////////////
 // Matrices
+///////////////////////////////////////////////////////////////////////////
 union M4x4
 {
     // 0: 0 1 2 3
@@ -227,14 +309,18 @@ M4x4 M4x4_inverse_model_view_matrix(M4x4 model_view_matrix, V3f camera_pos)
 M4x4 M4x4_fixed_forward_matrix(V3f camera_pos)
 {
     M4x4 result = M4x4_identity();
-    M4x4_apply_translate(result, -camera_pos.x, -camera_pos.y, camera_pos.z);
+    result.m[0][3] = -camera_pos.x;
+    result.m[1][3] = -camera_pos.y;
+    result.m[2][3] =  camera_pos.z;
     return result;
 }
 
 M4x4 M4x4_inverse_fixed_forward_matrix(M4x4 fixed_forward_matrix, V3f camera_pos)
 {
     M4x4 result = M4x4_identity();
-    M4x4_apply_translate(result, camera_pos.x, camera_pos.y, -camera_pos.z);
+    result.m[0][3] =  camera_pos.x;
+    result.m[1][3] =  camera_pos.y;
+    result.m[2][3] = -camera_pos.z;
     return result;
 }
 
@@ -286,6 +372,10 @@ M4x4 M4x4_inverse_orthographic_matrix(M4x4 orthographic_matrix)
     return result;
 }
 
+///////////////////////////////////////////////////////////////////////////
+// 2D/3D Space/Perspective
+// TODO: This can be sorted into categories better
+///////////////////////////////////////////////////////////////////////////
 inline V3f
 V3f_fps_forward_vector(f32 yaw_radians, f32 pitch_radians)
 {
@@ -336,6 +426,16 @@ b32 ray_triangle_intersection(V3f v0, V3f v1, V3f v2,
     return true;
 }
 
+b32 ray_rectangle_intersection(V3f min_min_pos, V3f max_min_pos,
+                               V3f min_max_pos, V3f max_max_pos,
+                               V3f ray_origin, V3f ray_direction,
+                               V3f* pos)
+{
+    b32 result = (ray_triangle_intersection(min_min_pos, min_max_pos, max_max_pos, ray_origin, ray_direction, pos) |
+                  ray_triangle_intersection(min_min_pos, max_max_pos, max_min_pos, ray_origin, ray_direction, pos));
+    return result;
+}
+
 b32 ray_rectangle_intersection(V3f min_min_pos, V3f max_max_pos,
                                V3f ray_origin, V3f ray_direction,
                                V3f* pos)
@@ -345,8 +445,8 @@ b32 ray_rectangle_intersection(V3f min_min_pos, V3f max_max_pos,
     max_min_pos.x = max_max_pos.x;
     V3f min_max_pos = min_min_pos;
     min_max_pos.y = max_max_pos.y;
-    result = (ray_triangle_intersection(min_min_pos, min_max_pos, max_max_pos, ray_origin, ray_direction, pos) |
-              ray_triangle_intersection(min_min_pos, max_max_pos, max_min_pos, ray_origin, ray_direction, pos));
+    result = ray_rectangle_intersection(min_min_pos, max_min_pos, min_max_pos, max_max_pos,
+                                        ray_origin, ray_direction, pos);
     return result;
 }
 

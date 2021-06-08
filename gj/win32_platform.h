@@ -130,6 +130,7 @@ void* win32_allocate_memory(size_t size)
                              size);
 #endif
     void* result = malloc(size);
+    memset(result, 0, size);
     Assert(result);
     return result;
 }

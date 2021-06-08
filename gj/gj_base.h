@@ -1,6 +1,8 @@
 #if !defined(GJ_BASE_H)
 #define GJ_BASE_H
 
+#include <cstring> // memset
+
 ///////////////////////////////////////////////////////////////////////////
 // Types
 ///////////////////////////////////////////////////////////////////////////
@@ -189,9 +191,8 @@ struct PlatformFileHandle
 {
     void* handle;
     u32 file_size;
-#if GJ_DEBUG
+    // TODO: Remove?
     char* full_file_name;
-#endif
 };
 
 struct PlatformFileListing
