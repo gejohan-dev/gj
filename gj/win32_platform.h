@@ -47,38 +47,38 @@ PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
     return result;
 }
 
-void win32_read_data_from_file_handle(PlatformFileHandle* file_handle, u32 offset, u32 size, void* dst)
+void win32_read_data_from_file_handle(PlatformFileHandle file_handle, size_t offset, size_t size, void* dst)
 {
-    HANDLE handle = (HANDLE)file_handle->handle;
+    HANDLE handle = (HANDLE)file_handle.handle;
 
     OVERLAPPED overlapped = {};
-    overlapped.Offset = offset;
+    overlapped.Offset = gj_safe_cast_u64_to_u32(offset);
     // NOTE: If offset becomes 64 bit I need to do:
     // overlapped.OffsetHigh = (u32)((offset >> 32) & 0xFFFFFFFF);
 
     DWORD bytes_read;
-    Assert(ReadFile(handle, dst, size, &bytes_read, &overlapped));
+    Assert(ReadFile(handle, dst, gj_safe_cast_u64_to_u32(size), &bytes_read, &overlapped));
     Assert(bytes_read == size);
 }
 
-void win32_write_data_to_file_handle(PlatformFileHandle* file_handle, u32 offset, u32 size, void* src)
+void win32_write_data_to_file_handle(PlatformFileHandle file_handle, size_t offset, size_t size, void* src)
 {
-    HANDLE handle = (HANDLE)file_handle->handle;
+    HANDLE handle = (HANDLE)file_handle.handle;
 
     OVERLAPPED overlapped = {};
-    overlapped.Offset = offset;
+    overlapped.Offset = gj_safe_cast_u64_to_u32(offset);
     // NOTE: If offset becomes 64 bit I need to do:
     // overlapped.OffsetHigh = (u32)((offset >> 32) & 0xFFFFFFFF);
 
     DWORD bytes_written;
-    Assert(WriteFile(handle, src, size, &bytes_written, &overlapped));
+    Assert(WriteFile(handle, src, gj_safe_cast_u64_to_u32(size), &bytes_written, &overlapped));
     Assert(bytes_written == size);
 }
 
-void win32_close_file_handle(PlatformFileHandle* file_handle)
+void win32_close_file_handle(PlatformFileHandle file_handle)
 {
-    Assert(CloseHandle(file_handle->handle));
-    g_platform_api.deallocate_memory(file_handle->full_file_name);
+    Assert(CloseHandle(file_handle.handle));
+    g_platform_api.deallocate_memory(file_handle.full_file_name);
 }
 
 PlatformFileListing* win32_list_files(MemoryArena* memory_arena, const char* file_name_pattern)

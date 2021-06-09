@@ -39,12 +39,18 @@ typedef u8 one_byte;
 #define InvalidCodePath Assert(!"InvalidCodePath")
 #define InvalidDefaultCase default: {InvalidCodePath;} break
 
+#define gj_BitmaskU32 (0xFFFFFFFF)
+
 #define Kilobytes(value) ((value) * 1024LL)
 #define Megabytes(value) (Kilobytes(value) * 1024LL)
 #define Gigabytes(value) (Megabytes(value) * 1024LL)
 #define Terabytes(value) (Gigabytes(value) * 1024LL)
 
 #define ArrayCount(array) (sizeof(array) / sizeof((array)[0]))
+
+inline u32
+gj_safe_cast_u64_to_u32(u64 value)
+{ Assert(value <= gj_BitmaskU32); return (u32)(value & gj_BitmaskU32); }
 
 #define IsCharacter(c) ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
 #define IsDigit(c) (c >= '0' && c <= '9')
@@ -221,9 +227,9 @@ struct TicketMutex
 };
 
 typedef PlatformFileHandle   GetFileHandle(const char* file_name, u8 mode_flags);
-typedef void                 ReadDataFromFileHandle(PlatformFileHandle* file_handle, u32 offset, u32 size, void* dst);
-typedef void                 WriteDataToFileHandle(PlatformFileHandle* file_handle, u32 offset, u32 size, void* src);
-typedef void                 CloseFileHandle(PlatformFileHandle* file_handle);
+typedef void                 ReadDataFromFileHandle(PlatformFileHandle file_handle, size_t offset, size_t size, void* dst);
+typedef void                 WriteDataToFileHandle(PlatformFileHandle file_handle, size_t offset, size_t size, void* src);
+typedef void                 CloseFileHandle(PlatformFileHandle file_handle);
 typedef PlatformFileListing* ListFiles(MemoryArena* memory_arena, const char* file_name_pattern);
 typedef void*                AllocateMemory(size_t size);
 typedef void                 DeallocateMemory(void* memory);

@@ -63,6 +63,7 @@ V2(u, u32);
         struct { type r; type g; type b; };     \
         type array[3];                          \
         type xy[2];                             \
+        V2##name v2;                            \
     }
 V3(f, f32);
 
@@ -447,6 +448,18 @@ b32 ray_rectangle_intersection(V3f min_min_pos, V3f max_max_pos,
     min_max_pos.y = max_max_pos.y;
     result = ray_rectangle_intersection(min_min_pos, max_min_pos, min_max_pos, max_max_pos,
                                         ray_origin, ray_direction, pos);
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Grid Math
+///////////////////////////////////////////////////////////////////////////
+inline V2f
+grid_get_cell_coord(V2f pos, f32 cell_width, f32 cell_height)
+{
+    V2f result;
+    result.x = (f32)((s32)(pos.x / cell_width)) * cell_width;
+    result.y = (f32)((s32)(pos.y / cell_height)) * cell_height;
     return result;
 }
 
