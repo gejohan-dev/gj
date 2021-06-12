@@ -3,6 +3,9 @@
 
 #include <cstring> // memset
 
+#define STB_SPRINTF_IMPLEMENTATION
+#include <libs/stb/stb_sprintf.h>
+
 ///////////////////////////////////////////////////////////////////////////
 // Types
 ///////////////////////////////////////////////////////////////////////////
@@ -77,6 +80,10 @@ gj_safe_cast_u64_to_u32(u64 value)
     g_platform_api.debug_print(#Id "%lf\n", (Id##__end.QuadPart - Id##__start.QuadPart) / (f64) Id##__freq.QuadPart);
 #endif
 
+inline void gj_set_flag  (u32* flags, u32 flag) { *flags |= (1 << flag); }
+inline void gj_unset_flag(u32* flags, u32 flag) { *flags &= ~(gj_BitmaskU32 & flag); }
+inline b32  gj_get_flag  (u32 flags,  u32 flag) { return flags & (1 << flag); }
+
 s32 get_s32_length(s32 number)
 {
     s32 result = 1;
@@ -108,18 +115,6 @@ void build_binary_string(u32 number, char* buffer, u32 max_size, u32 padding)
     buffer[padding] = '\0';
 }
 
-inline void
-copy_string(char* src, char* dst)
-{
-    while (*src != '\0')
-    {
-        *dst = *src;
-        src++;
-        dst++;
-    }
-    *dst = *src;
-}
-
 ///////////////////////////////////////////////////////////////////////////
 // Memory
 ///////////////////////////////////////////////////////////////////////////
@@ -146,18 +141,6 @@ void clear_arena(MemoryArena* arena)
     arena->used = 0;
 }
 
-#define zero_struct(struct_instance) zero_size(sizeof(struct_instance), &(struct_instance))
-inline void
-zero_size(size_t size_bytes, void* ptr)
-{
-    u8* byte = (u8*)ptr;
-    while(size_bytes > 0)
-    {
-        *byte++ = 0;
-        size_bytes--;
-    }
-}
-
 #define push_size(arena, size)_push(arena, size)
 #define push_array(arena, type, count)(type*)push_size(arena, sizeof(type) * count)
 #define push_struct(arena, type) (type*)_push(arena, sizeof(type))
@@ -179,7 +162,7 @@ void* _push(MemoryArena* arena, size_t size, size_t alignment = 4)
 
     void* result = (void*)(result_pointer + alignment_offset);
 
-    zero_size(size, result);
+    memset(result, 0, size);
     
     return result;
 }

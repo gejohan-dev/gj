@@ -91,32 +91,38 @@ inline V2f V2_rotate_90        (V2f v)            { return {-v.y, v.x}; }
 // Transform to other data types
 inline V3f V2_to_V3(V2f v, f32 z)     { return {v.x, v.y, z}; }
 
-internal V2f
-V2_axis_intersect(V2f origin_pos, V2f origin_dir, V2f start, V2f end, f32* t_min)
+inline V3f V3_add      (V3f v0, V3f v1)             { return {v0.x + v1.x, v0.y + v1.y, v0.z + v1.z}; }
+inline V3f V3_add      (V3f v0, f32 c)              { return {v0.x + c, v0.y + c, v0.z + c}; }
+inline V3f V3_add      (f32 c, V3f v0)              { return V3_add(v0, c); }
+inline V3f V3_sub      (V3f v0, V3f v1)             { return {v0.x - v1.x, v0.y - v1.y, v0.z - v1.z}; }
+inline f32 V3_length   (V3f v0)                     { return sqrt(v0.x * v0.x + v0.y * v0.y + v0.z * v0.z); }
+inline f32 V3_length   (f32 x, f32 y, f32 z)        { return sqrt(x * x + y * y + z * z); }
+inline V3f V3_mul      (f32 x1, f32 y1, f32 z1,
+                        f32 x2, f32 y2, f32 z2)     { return {x1 * x2, y1 * y2, z1 * z2}; }
+inline V3f V3_mul      (f32 c, V3f v0)              { return {c * v0.x, c * v0.y, c * v0.z}; }
+inline V3f V3_mul      (V3f v0, f32 c)              { return V3_mul(c, v0); }
+inline V3f V3_mul      (f32 x, f32 y, f32 z, f32 c) { return {c * x, c * y, c * z}; }
+inline V3f V3_div      (f32 x, V3f v)               { return {x / v.x, x / v.y, x / v.z}; }
+inline V3f V3_normalize(V3f v0)                     { f32 l = V3_length(v0); return {v0.x / l, v0.y / l, v0.z / l}; }
+inline f32 V3_dot      (V3f v0, V3f v1)             { return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z; }
+inline V3f V3_cross    (V3f v0, V3f v1)             { return {v0.y * v1.z - v0.z * v1.y, v0.z * v1.x - v0.x * v1.z, v0.x * v1.y - v0.y * v1.x}; }
+
+// Transform to other data types
+inline V2f V3_to_V2(V3f v)     { return {v.x, v.y}; }
+
+V3f V3_triangle_normal(V3f p1, V3f p2, V3f p3)
 {
-    V2f result = {FLT_MAX, FLT_MAX};
-
-    f32 _t = FLT_MAX;
-    if (!t_min) t_min = &_t;
-
-#define UpdateT(Start, CheckAxis, BoundsAxis)                           \
-    do {                                                                \
-        f32 t = (Start - origin_pos.##CheckAxis) / origin_dir.##CheckAxis; \
-        V2f to = V2_add(origin_pos, V2_mul(t, origin_dir));             \
-        if (gj_IsPositive(t) && t < *t_min &&                           \
-            unknown_bounds_check(to.##BoundsAxis, start.##BoundsAxis, end.##BoundsAxis)) *t_min = t; \
-    } while (false)
-
-    UpdateT(start.x, x, y);
-    UpdateT(end.x,   x, y);
-    UpdateT(start.y, y, x);
-    UpdateT(end.y,   y, x);
-
-    result = V2_add(origin_pos, V2_mul(*t_min, origin_dir));
-    
+    V3f result = {};    
+    V3f normal_comp_1 = V3_sub(p2, p1);
+    V3f normal_comp_2 = V3_sub(p3, p1);
+    result = V3_cross(normal_comp_1, normal_comp_2);
+    result = V3_normalize(result);
     return result;
 }
 
+///////////////////////////////////////////////////////////////////////////
+// 2D Collision
+///////////////////////////////////////////////////////////////////////////
 // Note: Comes from
 // https://web.archive.org/web/20060911055655/http://local.wasp.uwa.edu.au/%7Epbourke/geometry/lineline2d/
 internal V2f
@@ -145,32 +151,39 @@ V2_line_line_intersection(V2f line1_p1, V2f line1_p2,
     return result;
 }
 
-inline V3f V3_add      (V3f v0, V3f v1)             { return {v0.x + v1.x, v0.y + v1.y, v0.z + v1.z}; }
-inline V3f V3_add      (V3f v0, f32 c)              { return {v0.x + c, v0.y + c, v0.z + c}; }
-inline V3f V3_add      (f32 c, V3f v0)              { return V3_add(v0, c); }
-inline V3f V3_sub      (V3f v0, V3f v1)             { return {v0.x - v1.x, v0.y - v1.y, v0.z - v1.z}; }
-inline f32 V3_length   (V3f v0)                     { return sqrt(v0.x * v0.x + v0.y * v0.y + v0.z * v0.z); }
-inline f32 V3_length   (f32 x, f32 y, f32 z)        { return sqrt(x * x + y * y + z * z); }
-inline V3f V3_mul      (f32 x1, f32 y1, f32 z1,
-                        f32 x2, f32 y2, f32 z2)     { return {x1 * x2, y1 * y2, z1 * z2}; }
-inline V3f V3_mul      (f32 c, V3f v0)              { return {c * v0.x, c * v0.y, c * v0.z}; }
-inline V3f V3_mul      (V3f v0, f32 c)              { return V3_mul(c, v0); }
-inline V3f V3_mul      (f32 x, f32 y, f32 z, f32 c) { return {c * x, c * y, c * z}; }
-inline V3f V3_div      (f32 x, V3f v)               { return {x / v.x, x / v.y, x / v.z}; }
-inline V3f V3_normalize(V3f v0)                     { f32 l = V3_length(v0); return {v0.x / l, v0.y / l, v0.z / l}; }
-inline f32 V3_dot      (V3f v0, V3f v1)             { return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z; }
-inline V3f V3_cross    (V3f v0, V3f v1)             { return {v0.y * v1.z - v0.z * v1.y, v0.z * v1.x - v0.x * v1.z, v0.x * v1.y - v0.y * v1.x}; }
-
-// Transform to other data types
-inline V2f V3_to_V2(V3f v)     { return {v.x, v.y}; }
-
-V3f V3_triangle_normal(V3f p1, V3f p2, V3f p3)
+internal f32
+V2_line_rectangle_intersection(V2f line_p1, V2f line_p2,
+                               V2f bottom_left_corner,
+                               V2f bottom_right_corner,
+                               V2f top_left_corner,
+                               V2f top_right_corner,
+                               V2f* normal)
 {
-    V3f result = {};    
-    V3f normal_comp_1 = V3_sub(p2, p1);
-    V3f normal_comp_2 = V3_sub(p3, p1);
-    result = V3_cross(normal_comp_1, normal_comp_2);
-    result = V3_normalize(result);
+    f32 result = FLT_MAX;
+
+#define CheckPoint(P1, P2, Point)                                       \
+    {                                                                   \
+        f32 t = V2_length(V2_sub(Point, line_p1));                      \
+        if (t >= 0.0f && t < result &&                                  \
+            unknown_bounds_check(Point.x, P1.x, P2.x, 0.0001f) &&       \
+            unknown_bounds_check(Point.y, P1.y, P2.y, 0.0001f))         \
+        {                                                               \
+            result  = t;                                                \
+            *normal = V2_rotate_90(V2_normalize(V2_sub(P2, P1)));       \
+        }                                                               \
+    }
+
+    V2f left   = V2_line_line_intersection(line_p1, line_p2, bottom_left_corner, top_left_corner);
+    CheckPoint(bottom_left_corner, top_left_corner, left);
+    V2f top    = V2_line_line_intersection(line_p1, line_p2, top_left_corner, top_right_corner);
+    CheckPoint(top_left_corner, top_right_corner, top);
+    V2f right  = V2_line_line_intersection(line_p1, line_p2, top_right_corner, bottom_right_corner);
+    CheckPoint(top_right_corner, bottom_right_corner, right);
+    V2f bottom = V2_line_line_intersection(line_p1, line_p2, bottom_right_corner, bottom_left_corner);
+    CheckPoint(bottom_right_corner, bottom_left_corner, bottom);
+    
+#undef CheckPoint
+    
     return result;
 }
 
