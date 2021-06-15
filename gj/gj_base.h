@@ -81,7 +81,7 @@ gj_safe_cast_u64_to_u32(u64 value)
 #endif
 
 inline void gj_set_flag  (u32* flags, u32 flag) { *flags |= (1 << flag); }
-inline void gj_unset_flag(u32* flags, u32 flag) { *flags &= ~(gj_BitmaskU32 & flag); }
+inline void gj_unset_flag(u32* flags, u32 flag) { *flags &= ~(gj_BitmaskU32 & (1 << flag)); }
 inline b32  gj_get_flag  (u32 flags,  u32 flag) { return flags & (1 << flag); }
 
 s32 get_s32_length(s32 number)
