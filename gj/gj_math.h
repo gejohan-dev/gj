@@ -82,8 +82,9 @@ inline f32 V2_length           (V2f v0)           { return sqrt(v0.x * v0.x + v0
 inline f32 V2_length           (f32 x, f32 y)     { return sqrt(x * x + y * y); }
 inline V2f V2_normalize        (V2f v0)           { f32 l = V2_length(v0); return {v0.x / l, v0.y / l}; }
 inline f32 V2_dot              (V2f v0, V2f v1)   { return v0.x * v1.x + v0.y * v1.y; }
+inline f32 V2_det              (V2f v0, V2f v1)   { return v0.x * v1.y + v0.y * v1.x; }
 inline V2f V2_reflect          (V2f v, V2f n)     { return V2_sub(v, V2_mul(2.0f, V2_mul(V2_dot(v, n), n))); }
-inline f32 V2_get_angle        (V2f v, V2f u)     { return acosf(V2_dot(v, u) / (V2_length(v) * V2_length(u))); }
+inline f32 V2_get_angle        (V2f v, V2f u)     { return atan2f(V2_det(v, u), V2_dot(v, u)); }
 inline f32 V2_get_angle_x_axis (V2f v)            { return V2_get_angle(v, {1.0f, 0.0f}); }
 inline V2f V2_rotate           (V2f v, f32 a)     { return {V2_dot(v, {cos(a), -sin(a)}), V2_dot(v, {sin(a), cos(a)})}; }
 inline V2f V2_rotate_90        (V2f v)            { return {-v.y, v.x}; }
@@ -123,13 +124,14 @@ V3f V3_triangle_normal(V3f p1, V3f p2, V3f p3)
 ///////////////////////////////////////////////////////////////////////////
 // 2D Collision
 ///////////////////////////////////////////////////////////////////////////
+#define V2_LINE_NO_COLLISION FLT_MAX
 // Note: Comes from
 // https://web.archive.org/web/20060911055655/http://local.wasp.uwa.edu.au/%7Epbourke/geometry/lineline2d/
 internal V2f
 V2_line_line_intersection(V2f line1_p1, V2f line1_p2,
                           V2f line2_p1, V2f line2_p2)
 {
-    V2f result = {FLT_MAX, FLT_MAX};
+    V2f result = {V2_LINE_NO_COLLISION, V2_LINE_NO_COLLISION};
     
     f32 x1 = line1_p1.x; f32 y1 = line1_p1.y;
     f32 x2 = line1_p2.x; f32 y2 = line1_p2.y;
@@ -159,7 +161,7 @@ V2_line_rectangle_intersection(V2f line_p1, V2f line_p2,
                                V2f top_right_corner,
                                V2f* normal)
 {
-    f32 result = FLT_MAX;
+    f32 result = V2_LINE_NO_COLLISION;
 
 #define CheckPoint(P1, P2, Point)                                       \
     {                                                                   \

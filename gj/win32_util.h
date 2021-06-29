@@ -9,7 +9,7 @@
 #define WIN32_EXE_FILE_NAME NULL
 #endif
 
-global_variable int64_t         g_perf_count_frequency;
+// TODO: move into Win32App
 global_variable WINDOWPLACEMENT g_window_pos = {sizeof(g_window_pos)};
 struct Win32App
 {
@@ -17,7 +17,7 @@ struct Win32App
     HDC device_context;
     V2u window_dimensions;
 };
-global_variable Win32App        g_win32_app;
+global_variable Win32App g_win32_app;
 
 V2u win32_get_window_dimension(HWND window)
 {
@@ -40,11 +40,12 @@ win32_get_time()
     return result;
 }
 
-inline float
+inline f32
 win32_get_time_difference(LARGE_INTEGER start, LARGE_INTEGER end)
 {
-    float result = ((float)(end.QuadPart - start.QuadPart) /
-                  (float)g_perf_count_frequency);
+    LARGE_INTEGER perf_count_frequency; QueryPerformanceFrequency(&perf_count_frequency);
+    f32 result = ((f32)(end.QuadPart - start.QuadPart) /
+                  (f32)perf_count_frequency.QuadPart);
     return result;
 }
 
@@ -157,21 +158,21 @@ void win32_load_dll(Win32HotLoadedDLL* dll, char* dll_file_path, char* lock_file
     win32_load_dll(dll);
 }
 
-void win32_init_window(HINSTANCE instance, WNDPROC window_proc)
+void win32_init_window(HINSTANCE instance, WNDPROC window_proc, const char* window_title)
 {
     WNDCLASSA window_class = {};
     window_class.style = CS_VREDRAW | CS_HREDRAW;
     window_class.lpfnWndProc = window_proc;
     window_class.hInstance = instance;
     window_class.hCursor = LoadCursor(0, IDC_ARROW);
-    window_class.lpszClassName = "MusicStudio";
+    window_class.lpszClassName = window_title;
 
     Assert(RegisterClassA(&window_class));
 
     g_win32_app.window = CreateWindowExA(
         0,
         window_class.lpszClassName,
-        "AudioGame",
+        window_title,
         WS_VISIBLE | WS_OVERLAPPEDWINDOW,
         0,
         0,
