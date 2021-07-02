@@ -86,15 +86,32 @@ struct DebugTimer
     u64 count;
 };
 
+global_variable u64        g_debug_timer_perf_freq;
 global_variable u32        g_debug_timer_frame_count = 0;
 global_variable DebugTimer g_debug_timers[20] =
 {
-    {true, "Frame", 0, 0.0f, 0.0f, 0} // Note: Used to measure each frame
+    {true, "Frame",  0, 0.0f, 0.0f, 0} // Note: Used to measure each frame
 };
+
+// Note: Used to measure the timers themselves
+global_variable u64        g_debug_timers_overhead_start;
+global_variable u64        g_debug_timers_overhead = 0;
+#define StartOverheadTimer()                                            \
+    do {                                                                \
+        LARGE_INTEGER perf_counter_start; QueryPerformanceCounter(&perf_counter_start); \
+        g_debug_timers_overhead_start = perf_counter_start.QuadPart;    \
+    } while (false)
+#define EndOverheadTimer()                                              \
+    do {                                                                \
+        LARGE_INTEGER perf_counter_end; QueryPerformanceCounter(&perf_counter_end); \
+        g_debug_timers_overhead += (perf_counter_end.QuadPart - g_debug_timers_overhead_start) / g_debug_timer_perf_freq; \
+    } while (false)
 
 internal DebugTimer*
 gj_get_timer(const char* name)
 {
+    StartOverheadTimer();
+    
     DebugTimer* result = NULL;
     u32 debug_timer_index = 0; 
     while (debug_timer_index < ArrayCount(g_debug_timers) &&
@@ -103,12 +120,17 @@ gj_get_timer(const char* name)
     {
         result = &g_debug_timers[debug_timer_index];
     }
+
+    EndOverheadTimer();
+    
     return result;
 }
 
 internal void
 gj_start_timer(const char* name)
 {
+    StartOverheadTimer();
+    
     DebugTimer* debug_timer = gj_get_timer(name);
     if (!debug_timer)
     {
@@ -127,24 +149,36 @@ gj_start_timer(const char* name)
     LARGE_INTEGER perf_counter_start; QueryPerformanceCounter(&perf_counter_start);
     debug_timer->current = perf_counter_start.QuadPart;
     debug_timer->count++;
+
+    EndOverheadTimer();
 }
 
 internal void
 gj_end_timer(const char* name)
 {
+    StartOverheadTimer();
+    
     DebugTimer* debug_timer = gj_get_timer(name);
     Assert(debug_timer);
 
-    LARGE_INTEGER perf_counter_end; QueryPerformanceCounter(&perf_counter_end);
-    LARGE_INTEGER perf_freq;        QueryPerformanceFrequency(&perf_freq);
-    f32 current_time = (f32)(perf_counter_end.QuadPart - debug_timer->current) / (f32)perf_freq.QuadPart;
-    debug_timer->total += current_time;
-    debug_timer->total_this_frame += current_time;
+    {
+        LARGE_INTEGER perf_counter_end; QueryPerformanceCounter(&perf_counter_end);
+        f32 current_time = (f32)(perf_counter_end.QuadPart - debug_timer->current) / (f32)g_debug_timer_perf_freq;
+        debug_timer->total += current_time;
+        debug_timer->total_this_frame += current_time;
+    }
+    
+    EndOverheadTimer();
 }
 
 internal void
 gj_timers_start_frame()
 {
+    LARGE_INTEGER perf_freq; QueryPerformanceFrequency(&perf_freq);
+    g_debug_timer_perf_freq = perf_freq.QuadPart;
+
+    StartOverheadTimer();
+    
     g_debug_timer_frame_count++;
     
     gj_start_timer("Frame");
@@ -155,6 +189,8 @@ gj_timers_start_frame()
         DebugTimer* debug_timer = &g_debug_timers[debug_timer_index];
         debug_timer->total_this_frame = 0.0f;
     }
+
+    EndOverheadTimer();
 }
 
 internal void
