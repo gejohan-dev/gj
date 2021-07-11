@@ -1,9 +1,6 @@
 #if !defined(WIN32_PLATFORM_H)
 #define WIN32_PLATFORM_H
 
-#include <stdio.h> // vsprintf_s
-#include <malloc.h>
-
 #include <gj/gj_base.h> // PlatformAPI
 
 ///////////////////////////////////////////////////////////////////////////
@@ -11,7 +8,8 @@
 ///////////////////////////////////////////////////////////////////////////
 PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
 {
-    PlatformFileHandle result = {};
+    PlatformFileHandle result;
+    gj_ZeroMemory(&result);
     Assert(sizeof(HANDLE) <= sizeof(result.handle));
 
     DWORD handle_permissions = 0;
@@ -50,8 +48,9 @@ PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
 void win32_read_data_from_file_handle(PlatformFileHandle file_handle, size_t offset, size_t size, void* dst)
 {
     HANDLE handle = (HANDLE)file_handle.handle;
-
-    OVERLAPPED overlapped = {};
+    
+    OVERLAPPED overlapped;
+    gj_ZeroMemory(&overlapped);
     overlapped.Offset = gj_safe_cast_u64_to_u32(offset);
     // NOTE: If offset becomes 64 bit I need to do:
     // overlapped.OffsetHigh = (u32)((offset >> 32) & 0xFFFFFFFF);
@@ -65,7 +64,8 @@ void win32_write_data_to_file_handle(PlatformFileHandle file_handle, size_t offs
 {
     HANDLE handle = (HANDLE)file_handle.handle;
 
-    OVERLAPPED overlapped = {};
+    OVERLAPPED overlapped;
+    gj_ZeroMemory(&overlapped);
     overlapped.Offset = gj_safe_cast_u64_to_u32(offset);
     // NOTE: If offset becomes 64 bit I need to do:
     // overlapped.OffsetHigh = (u32)((offset >> 32) & 0xFFFFFFFF);
@@ -119,7 +119,7 @@ void* win32_allocate_memory(size_t size)
     void* result = VirtualAlloc(NULL, size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 #endif
     
-#if 0
+#if 1
     void* result = HeapAlloc(GetProcessHeap(),
                              HEAP_ZERO_MEMORY
                              | HEAP_NO_SERIALIZE
@@ -129,8 +129,12 @@ void* win32_allocate_memory(size_t size)
                              ,
                              size);
 #endif
+
+#if 0
     void* result = malloc(size);
     memset(result, 0, size);
+#endif
+    
     Assert(result);
     return result;
 }
@@ -139,13 +143,16 @@ void win32_deallocate_memory(void* memory)
 {
     if (memory)
     {
-#if 0
+#if 1
         // NOTE: https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree
         // If the dwFreeType parameter (third) is MEM_RELEASE, this parameter (second) must be 0 (zero).
         /* Assert(VirtualFree(memory, 0, MEM_RELEASE)); */
         Assert(HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, memory));
 #endif
+
+#if 0
         free(memory);
+#endif
     }
 }
 
@@ -156,11 +163,11 @@ DWORD WINAPI ThreadProc(LPVOID param)
     return 0;
 }
 
-struct Win32Thread
+typedef struct Win32Thread
 {
     DWORD id;
     HANDLE handle;
-};
+} Win32Thread;
 
 void win32_new_thread(PlatformThreadContext* thread_context)
 {
@@ -183,7 +190,7 @@ b32 win32_wait_for_threads(PlatformThreadContext* threads, u32 thread_count)
         CloseHandle(thread_handle);
     }
     
-    return true;
+    return gj_True;
 }
 
 ThreadStatus win32_check_thread_status(PlatformThreadContext thread_context)
@@ -212,12 +219,22 @@ void win32_end_ticket_mutex(TicketMutex* ticket_mutex)
     InterlockedExchangeAdd64((volatile LONG64*)&ticket_mutex->serving, 1);
 }
 
+HANDLE win32_get_stdout_handle()
+{
+    HANDLE result = CreateFileA("CONOUT$",
+                                GENERIC_READ | GENERIC_WRITE,
+                                FILE_SHARE_READ| FILE_SHARE_WRITE,
+                                NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    Assert(result != INVALID_HANDLE_VALUE);
+    return result;
+}
+
 void win32_debug_print(const char* format, ...)
 {
     va_list varargs;
     va_start(varargs, format);
     char buffer[BUFFER_SIZE];
-    vsprintf_s(buffer, format, varargs);
+    stbsp_sprintf(buffer, format, varargs);
     OutputDebugStringA(buffer);
     va_end(varargs);
 }
@@ -226,13 +243,13 @@ void win32_debug_print(const char* format, ...)
 // Audio API
 ///////////////////////////////////////////////////////////////////////////
 #include <xaudio2.h>
-struct Win32XAudio2
+typedef struct Win32XAudio2
 {
     IXAudio2* context;
     IXAudio2MasteringVoice* mastering_voice;
     WAVEFORMATEX wave_format_ext;
     IXAudio2SourceVoice* source_voice;
-};
+} Win32XAudio2;
 
 global_variable Win32XAudio2 g_win32_xaudio2;
 
@@ -245,7 +262,7 @@ u32 win32_queued_sound_buffers()
 {
     u32 result;
     XAUDIO2_VOICE_STATE xaudio2_voice_state;
-    g_win32_xaudio2.source_voice->GetState(&xaudio2_voice_state, 0);
+    IXAudio2SourceVoice_GetState(g_win32_xaudio2.source_voice, &xaudio2_voice_state, 0);
     result = xaudio2_voice_state.BuffersQueued;
     return result;
 }
@@ -278,7 +295,7 @@ SoundBuffer win32_create_sound_buffer(uint32_t sample_count)
 void win32_submit_sound_buffer(SoundBuffer sound_buffer)
 {
     XAUDIO2_BUFFER* xaudio2_buffer = (XAUDIO2_BUFFER*)sound_buffer.platform;
-    HRESULT hr = g_win32_xaudio2.source_voice->SubmitSourceBuffer(xaudio2_buffer);
+    HRESULT hr = IXAudio2SourceVoice_SubmitSourceBuffer(g_win32_xaudio2.source_voice, xaudio2_buffer, NULL);
     Assert(SUCCEEDED(hr));
 }
 
@@ -286,7 +303,7 @@ u32 win32_get_remaining_samples(SoundBuffer sound_buffer)
 {
     u32 result;
     XAUDIO2_VOICE_STATE xaudio2_voice_state;
-    g_win32_xaudio2.source_voice->GetState(&xaudio2_voice_state, 0);
+    IXAudio2SourceVoice_GetState(g_win32_xaudio2.source_voice, &xaudio2_voice_state, 0);
     result = xaudio2_voice_state.SamplesPlayed % sound_buffer.count;
     return result;
 }
@@ -294,29 +311,29 @@ u32 win32_get_remaining_samples(SoundBuffer sound_buffer)
 ///////////////////////////////////////////////////////////////////////////
 // Init
 ///////////////////////////////////////////////////////////////////////////
-void win32_init_platform_api(PlatformAPI* platform_api)
+void win32_init_platform_api()
 {
-    platform_api->get_file_handle            = win32_get_file_handle;
-    platform_api->read_data_from_file_handle = win32_read_data_from_file_handle;
-    platform_api->write_data_to_file_handle  = win32_write_data_to_file_handle;
-    platform_api->close_file_handle          = win32_close_file_handle;
-    platform_api->list_files                 = win32_list_files;
-    platform_api->allocate_memory            = win32_allocate_memory;
-    platform_api->deallocate_memory          = win32_deallocate_memory;
-    platform_api->new_thread                 = win32_new_thread;
-    platform_api->wait_for_threads           = win32_wait_for_threads;
-    platform_api->check_thread_status        = win32_check_thread_status;
-    platform_api->begin_ticket_mutex         = win32_begin_ticket_mutex;
-    platform_api->end_ticket_mutex           = win32_end_ticket_mutex;
+    g_platform_api.get_file_handle            = win32_get_file_handle;
+    g_platform_api.read_data_from_file_handle = win32_read_data_from_file_handle;
+    g_platform_api.write_data_to_file_handle  = win32_write_data_to_file_handle;
+    g_platform_api.close_file_handle          = win32_close_file_handle;
+    g_platform_api.list_files                 = win32_list_files;
+    g_platform_api.allocate_memory            = win32_allocate_memory;
+    g_platform_api.deallocate_memory          = win32_deallocate_memory;
+    g_platform_api.new_thread                 = win32_new_thread;
+    g_platform_api.wait_for_threads           = win32_wait_for_threads;
+    g_platform_api.check_thread_status        = win32_check_thread_status;
+    g_platform_api.begin_ticket_mutex         = win32_begin_ticket_mutex;
+    g_platform_api.end_ticket_mutex           = win32_end_ticket_mutex;
 #if GJ_DEBUG
-    platform_api->debug_print                = win32_debug_print;
+    g_platform_api.debug_print                = win32_debug_print;
 #endif
 
-    platform_api->get_max_queued_sound_buffers = win32_get_max_queued_sound_buffers;
-    platform_api->queued_sound_buffers         = win32_queued_sound_buffers;
-    platform_api->create_sound_buffer          = win32_create_sound_buffer;
-    platform_api->submit_sound_buffer          = win32_submit_sound_buffer;
-    platform_api->get_remaining_samples        = win32_get_remaining_samples;
+    g_platform_api.get_max_queued_sound_buffers = win32_get_max_queued_sound_buffers;
+    g_platform_api.queued_sound_buffers         = win32_queued_sound_buffers;
+    g_platform_api.create_sound_buffer          = win32_create_sound_buffer;
+    g_platform_api.submit_sound_buffer          = win32_submit_sound_buffer;
+    g_platform_api.get_remaining_samples        = win32_get_remaining_samples;
 }
 
 #endif
