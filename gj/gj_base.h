@@ -42,12 +42,18 @@ typedef u8 one_byte;
 // Util
 ///////////////////////////////////////////////////////////////////////////
 #if !defined(Assert)
+#if defined(GJ_DEBUG)
 #define Assert(expression)                      \
     do                                          \
     {                                           \
         if(!(expression)) *(int*)0 = 0;         \
     } while(0)
+#else
+#define Assert
 #endif
+#endif
+
+#define BUFFER_SIZE 512
 
 #define InvalidCodePath Assert(!"InvalidCodePath")
 #define InvalidDefaultCase default: {InvalidCodePath;} break
@@ -71,8 +77,6 @@ gj_safe_cast_u64_to_u32(u64 value)
 
 #define FLT_MAX 3.402823466e+38F /* max value */
 #define FLT_MIN 1.175494351e-38F /* min positive value */
-
-#define BUFFER_SIZE 512
 
 #define gj_SwapVar(type, x, y) do {##type __tmp = x; x = y; y = __tmp;} while(gj_False)
 #define gj_SwapArray(array, type, i, j) do {##type __tmp = array[i]; array[i] = array[j]; array[j] = __tmp;} while(gj_False)
@@ -170,9 +174,10 @@ static s32 gj_parse_number(char* s, int* length)
 ///////////////////////////////////////////////////////////////////////////
 // Timers
 ///////////////////////////////////////////////////////////////////////////
-#if defined(GJ_DEBUG) && defined(_MSC_VER)
+#if defined(GJ_DEBUG) && defined(_MSC_VER) && defined(GJ_TIMERS)
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
+#define _NO_CRT_STDIO_INLINE
 #include <windows.h>
 
 typedef struct DebugTimer

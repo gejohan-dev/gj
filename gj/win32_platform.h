@@ -51,9 +51,8 @@ void win32_read_data_from_file_handle(PlatformFileHandle file_handle, size_t off
     
     OVERLAPPED overlapped;
     gj_ZeroMemory(&overlapped);
-    overlapped.Offset = gj_safe_cast_u64_to_u32(offset);
-    // NOTE: If offset becomes 64 bit I need to do:
-    // overlapped.OffsetHigh = (u32)((offset >> 32) & 0xFFFFFFFF);
+    overlapped.Offset = offset & 0xFFFFFFFF;
+    overlapped.OffsetHigh = (u32)((offset >> 32) & 0xFFFFFFFF);
 
     DWORD bytes_read;
     Assert(ReadFile(handle, dst, gj_safe_cast_u64_to_u32(size), &bytes_read, &overlapped));
@@ -262,7 +261,11 @@ u32 win32_queued_sound_buffers()
 {
     u32 result;
     XAUDIO2_VOICE_STATE xaudio2_voice_state;
+#if __cplusplus
+    g_win32_xaudio2.source_voice->GetState(&xaudio2_voice_state, 0);
+#else
     IXAudio2SourceVoice_GetState(g_win32_xaudio2.source_voice, &xaudio2_voice_state, 0);
+#endif
     result = xaudio2_voice_state.BuffersQueued;
     return result;
 }
@@ -295,7 +298,11 @@ SoundBuffer win32_create_sound_buffer(uint32_t sample_count)
 void win32_submit_sound_buffer(SoundBuffer sound_buffer)
 {
     XAUDIO2_BUFFER* xaudio2_buffer = (XAUDIO2_BUFFER*)sound_buffer.platform;
+#if __cplusplus
+    HRESULT hr = g_win32_xaudio2.source_voice->SubmitSourceBuffer(xaudio2_buffer, NULL);
+#else
     HRESULT hr = IXAudio2SourceVoice_SubmitSourceBuffer(g_win32_xaudio2.source_voice, xaudio2_buffer, NULL);
+#endif
     Assert(SUCCEEDED(hr));
 }
 
@@ -303,7 +310,11 @@ u32 win32_get_remaining_samples(SoundBuffer sound_buffer)
 {
     u32 result;
     XAUDIO2_VOICE_STATE xaudio2_voice_state;
+#if __cplusplus
+    g_win32_xaudio2.source_voice->GetState(&xaudio2_voice_state, 0);
+#else
     IXAudio2SourceVoice_GetState(g_win32_xaudio2.source_voice, &xaudio2_voice_state, 0);
+#endif
     result = xaudio2_voice_state.SamplesPlayed % sound_buffer.count;
     return result;
 }
