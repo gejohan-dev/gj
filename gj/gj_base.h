@@ -43,19 +43,21 @@ typedef u8 one_byte;
 ///////////////////////////////////////////////////////////////////////////
 #if !defined(Assert)
 #if defined(GJ_DEBUG)
-#define Assert(expression)                      \
+#define gj_Assert(Exp)                          \
     do                                          \
     {                                           \
         if(!(expression)) *(int*)0 = 0;         \
     } while(0)
 #else
-#define Assert
+#define gj_Assert(Exp)
 #endif
+#else
+#define gj_Assert(Exp) Assert(Exp)
 #endif
 
 #define BUFFER_SIZE 512
 
-#define InvalidCodePath Assert(!"InvalidCodePath")
+#define InvalidCodePath gj_Assert(!"InvalidCodePath")
 #define InvalidDefaultCase default: {InvalidCodePath;} break
 
 #define gj_BitmaskU32 (0xFFFFFFFF)
@@ -69,7 +71,7 @@ typedef u8 one_byte;
 
 inline u32
 gj_safe_cast_u64_to_u32(u64 value)
-{ Assert(value <= gj_BitmaskU32); return (u32)(value & gj_BitmaskU32); }
+{ gj_Assert(value <= gj_BitmaskU32); return (u32)(value & gj_BitmaskU32); }
 
 #define gj_IsCharacter(c) ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
 #define gj_IsDigit(c) (c >= '0' && c <= '9')
@@ -141,22 +143,49 @@ static void build_binary_string(u32 number, char* buffer, u32 max_size, u32 padd
 
 static s32 gj_parse_digit(char c)
 {
-    Assert(gj_IsDigit(c));
+    gj_Assert(gj_IsDigit(c));
     return c - '0';
 }
 
-static s32 gj_parse_number(char* s, int* length)
+typedef struct GJParseNumber
+{
+    b32 ok;
+    s32 number;
+    s32 length;
+} GJParseNumber;
+
+static GJParseNumber gj_parse_number(char* s)
+{
+    GJParseNumber result;
+    result.ok     = gj_True;
+    result.number = 0;
+    result.length = 0;
+
+    if (!gj_IsDigit(*s))
+    {
+        result.ok = gj_False;
+    }
+    else
+    {
+        while (gj_IsDigit(*s))
+        {
+            result.number *= 10;
+            result.number += gj_parse_digit(*s);
+            s++;
+            result.length++;;
+        }
+    }
+    
+    return result;
+}
+
+static s32 gj_parse_word(const char* s, char* dst, int dst_size)
 {
     s32 result = 0;
-    // TODO: Return structure with value+is_ok instead?
-    if (length) *length = 0;
-    Assert(gj_IsDigit(*s));
-    while (gj_IsDigit(*s))
+    while (result < dst_size && *s != ' ' && *s != '\0')
     {
-        result *= 10;
-        result += gj_parse_digit(*s);
-        s++;
-        if (length) *length += 1;
+        *dst++ = *s++;
+        result++;
     }
     return result;
 }
@@ -241,14 +270,14 @@ gj_start_timer(const char* name)
         u32 debug_timer_index = 0;
         while (debug_timer_index < gj_ArrayCount(g_debug_timers) &&
                g_debug_timers[debug_timer_index].active) { debug_timer_index++; }
-        Assert(debug_timer_index < gj_ArrayCount(g_debug_timers));
+        gj_Assert(debug_timer_index < gj_ArrayCount(g_debug_timers));
         
         gj_ZeroMemory(&g_debug_timers[debug_timer_index]);
         g_debug_timers[debug_timer_index].active = gj_True;
         gj_string_copy(g_debug_timers[debug_timer_index].name, name);
         debug_timer = &g_debug_timers[debug_timer_index];
     }
-    Assert(debug_timer->active);
+    gj_Assert(debug_timer->active);
     
     LARGE_INTEGER perf_counter_start; QueryPerformanceCounter(&perf_counter_start);
     debug_timer->current = perf_counter_start.QuadPart;
@@ -263,7 +292,7 @@ gj_end_timer(const char* name)
     StartOverheadTimer();
     
     DebugTimer* debug_timer = gj_get_timer(name);
-    Assert(debug_timer);
+    gj_Assert(debug_timer);
 
     {
         LARGE_INTEGER perf_counter_end; QueryPerformanceCounter(&perf_counter_end);
@@ -356,7 +385,7 @@ void* _push(MemoryArena* arena, size_t size, size_t alignment)
     }
     size += alignment_offset;
     
-    Assert(arena->used + size <= arena->size);
+    gj_Assert(arena->used + size <= arena->size);
     arena->used += size;
 
     void* result = (void*)(result_pointer + alignment_offset);
