@@ -77,6 +77,9 @@ gj_safe_cast_u64_to_u32(u64 value)
 #define gj_IsDigit(c) (c >= '0' && c <= '9')
 #define gj_IsWhitespace(c) (c == ' ' || c == '\n' || c == '\r' || c == '\t')
 
+#define gj_DigitToChar(d) ((d) + '0')
+#define gj_CharToDigit(c) ((c) - '0')
+
 #define FLT_MAX 3.402823466e+38F /* max value */
 #define FLT_MIN 1.175494351e-38F /* min positive value */
 
@@ -144,7 +147,7 @@ static void build_binary_string(u32 number, char* buffer, u32 max_size, u32 padd
 static s32 gj_parse_digit(char c)
 {
     gj_Assert(gj_IsDigit(c));
-    return c - '0';
+    return gj_CharToDigit(c);
 }
 
 typedef struct GJParseNumber
