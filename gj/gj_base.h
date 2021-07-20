@@ -1,5 +1,9 @@
 #if !defined(GJ_BASE_H)
 #define GJ_BASE_H
+//
+// This file contains some common utilities/basic things I use in different
+// projects.
+//
 
 #if !defined(GJ_BASE_MEMSET)
 #include <cstring> // memset
@@ -42,6 +46,7 @@ typedef u8 one_byte;
 // Util
 ///////////////////////////////////////////////////////////////////////////
 #if !defined(Assert)
+
 #if defined(GJ_DEBUG)
 #define gj_Assert(Exp)                          \
     do                                          \
@@ -51,6 +56,7 @@ typedef u8 one_byte;
 #else
 #define gj_Assert(Exp)
 #endif
+
 #else
 #define gj_Assert(Exp) Assert(Exp)
 #endif
@@ -66,6 +72,8 @@ typedef u8 one_byte;
 #define Megabytes(value) (Kilobytes(value) * 1024LL)
 #define Gigabytes(value) (Megabytes(value) * 1024LL)
 #define Terabytes(value) (Gigabytes(value) * 1024LL)
+
+#define gj_BytesToMegabytes(Bytes) ((double)(Bytes) / (double)(1024*1024))
 
 #define gj_ArrayCount(array) (sizeof(array) / sizeof((array)[0]))
 
@@ -83,7 +91,7 @@ gj_safe_cast_u64_to_u32(u64 value)
 #define FLT_MAX 3.402823466e+38F /* max value */
 #define FLT_MIN 1.175494351e-38F /* min positive value */
 
-#define gj_SwapVar(type, x, y) do {##type __tmp = x; x = y; y = __tmp;} while(gj_False)
+#define gj_SwapVar(type, x, y) do {##type __tmp = (x); (x) = (y); (y) = __tmp;} while(gj_False)
 #define gj_SwapArray(array, type, i, j) do {##type __tmp = array[i]; array[i] = array[j]; array[j] = __tmp;} while(gj_False)
 
 #define gj_ZeroMemory(Mem) do { memset(Mem, 0, sizeof(*(Mem))); } while(gj_False)
@@ -199,6 +207,7 @@ static s32 gj_parse_word(const char* s, char* dst, int dst_size)
 //     int x = some_function();
 //     brk; // <----- if this isn't here you have to step through assembly to view result of some_function in x
 // }
+// TODO: Try using __debugbreak
 #if defined(GJ_DEBUG)
 #define brk do { int ______ = 0; ______++; } while(gj_False)
 #endif
@@ -366,7 +375,7 @@ void initialize_arena(MemoryArena* arena, size_t size, u8* base)
     arena->used = 0;
 }
 
-void clear_arena(MemoryArena* arena)
+void gj_memory_clear_arena(MemoryArena* arena)
 {
     memset(arena->base, 0, arena->size);
     arena->used = 0;
