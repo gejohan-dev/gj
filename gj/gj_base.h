@@ -5,11 +5,7 @@
 // projects.
 //
 
-#if !defined(GJ_BASE_MEMSET)
-#include <cstring> // memset
-#else
-void* memset(void* _dst, int value, size_t size);
-#endif
+/* #include <cstring> // memset */
 
 #define STB_SPRINTF_IMPLEMENTATION
 #include <libs/stb/stb_sprintf.h> // stbsp_sprintf
@@ -48,16 +44,27 @@ typedef u8 one_byte;
 #if !defined(Assert)
 
 #if defined(GJ_DEBUG)
+
+#if defined(_MSC_VER)
+#define gj_AssertFail() do { __debugbreak(); } while (0)
+#else
+#define gj_AssertFail() do { *(int*)0 = 0; } while (0)
+#endif
+
 #define gj_Assert(Exp)                          \
     do                                          \
     {                                           \
-        if(!(expression)) *(int*)0 = 0;         \
+        if(!(Exp))                              \
+        {                                       \
+            gj_AssertFail();                    \
+        }                                       \
     } while(0)
-#else
+
+#else // !defined(GJ_DEBUG)
 #define gj_Assert(Exp)
 #endif
 
-#else
+#else // !defined(Assert)
 #define gj_Assert(Exp) Assert(Exp)
 #endif
 
@@ -198,6 +205,9 @@ static s32 gj_parse_word(const char* s, char* dst, int dst_size)
         *dst++ = *s++;
         result++;
     }
+    // NOTE: Add null-termination
+    // TODO: Make optional?
+    if (result < dst_size) *dst = '\0';
     return result;
 }
 
