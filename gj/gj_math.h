@@ -101,13 +101,13 @@ inline V2f V2_rotate_90        (V2f v)            { gj_SwapVar(f32, v.x, v.y); v
 inline V2f V2_rotate           (V2f v, f32 a)
 {
     V2f r1;
-    r1.x = cos(a);
-    r1.y = -sin(a);
+    r1.x = gj_cos(a);
+    r1.y = -gj_sin(a);
     V2f r2;
-    r2.x = sin(a);
-    r2.y = cos(a);
+    r2.x = gj_sin(a);
+    r2.y = gj_cos(a);
     v.x = V2_dot(v, r1);
-    v.y = V2_dot(v, r1);
+    v.y = V2_dot(v, r2);
     return v;
 }
 
@@ -189,28 +189,32 @@ V2_line_line_intersection(V2f line1_p1, V2f line1_p2,
     return result;
 }
 
-internal f32
+internal b32
 V2_line_rectangle_intersection(V2f line_p1, V2f line_p2,
                                V2f bottom_left_corner,
                                V2f bottom_right_corner,
                                V2f top_left_corner,
                                V2f top_right_corner,
-                               V2f* normal)
+                               f32* out_t, V2f* out_normal)
 {
-    f32 result = V2_LINE_NO_COLLISION;
+    b32 result = 0;
 
 #define CheckPoint(P1, P2, Point)                                       \
     {                                                                   \
         f32 t = V2_length(V2_sub(Point, line_p1));                      \
-        if (t >= 0.0f && t < result &&                                  \
+        if (t < running_t &&                                            \
             unknown_bounds_check(Point.x, P1.x, P2.x, 0.0001f) &&       \
             unknown_bounds_check(Point.y, P1.y, P2.y, 0.0001f))         \
         {                                                               \
-            result  = t;                                                \
-            *normal = V2_rotate_90(V2_normalize(V2_sub(P2, P1)));       \
+            result      = 1;                                            \
+            running_t   = t;                                            \
+            *out_t      = t;                                            \
+            *out_normal = V2_rotate_90(V2_normalize(V2_sub(P2, P1)));   \
         }                                                               \
     }
 
+    f32 running_t = FLT_MAX;
+    
     V2f left   = V2_line_line_intersection(line_p1, line_p2, bottom_left_corner, top_left_corner);
     CheckPoint(bottom_left_corner, top_left_corner, left);
     V2f top    = V2_line_line_intersection(line_p1, line_p2, top_left_corner, top_right_corner);
@@ -327,8 +331,8 @@ M4x4_apply_transpose(M4x4& m)
 
 inline void M4x4_apply_rotate_x(M4x4& m, f32 angle_degrees)
 {
-    f32 cos_value = cos(angle_degrees * DEG_TO_RAD);
-    f32 sin_value = sin(angle_degrees * DEG_TO_RAD);
+    f32 cos_value = gj_cos(angle_degrees * DEG_TO_RAD);
+    f32 sin_value = gj_sin(angle_degrees * DEG_TO_RAD);
     m.a[4]  = m.a[4] * cos_value - m.a[8]  * sin_value;
     m.a[5]  = m.a[5] * cos_value - m.a[9]  * sin_value;
     m.a[6]  = m.a[6] * cos_value - m.a[10] * sin_value;
@@ -341,8 +345,8 @@ inline void M4x4_apply_rotate_x(M4x4& m, f32 angle_degrees)
 
 inline void M4x4_apply_rotate_y(M4x4& m, f32 angle_degrees)
 {
-    f32 cos_value = cos(angle_degrees * DEG_TO_RAD);
-    f32 sin_value = sin(angle_degrees * DEG_TO_RAD);
+    f32 cos_value = gj_cos(angle_degrees * DEG_TO_RAD);
+    f32 sin_value = gj_sin(angle_degrees * DEG_TO_RAD);
     m.a[0]  =  m.a[0] * cos_value + m.a[8]  * sin_value;
     m.a[1]  =  m.a[1] * cos_value + m.a[9]  * sin_value;
     m.a[2]  =  m.a[2] * cos_value + m.a[10] * sin_value;
@@ -355,8 +359,8 @@ inline void M4x4_apply_rotate_y(M4x4& m, f32 angle_degrees)
 
 inline void M4x4_apply_rotate_z(M4x4& m, f32 angle_degrees)
 {
-    f32 cos_value = cos(angle_degrees * DEG_TO_RAD);
-    f32 sin_value = sin(angle_degrees * DEG_TO_RAD);
+    f32 cos_value = gj_cos(angle_degrees * DEG_TO_RAD);
+    f32 sin_value = gj_sin(angle_degrees * DEG_TO_RAD);
     m.a[0] = m.a[0] * cos_value - m.a[4] * sin_value;
     m.a[1] = m.a[1] * cos_value - m.a[5] * sin_value;
     m.a[2] = m.a[2] * cos_value - m.a[6] * sin_value;
@@ -501,9 +505,9 @@ inline V3f
 V3f_fps_forward_vector(f32 yaw_radians, f32 pitch_radians)
 {
     V3f v;
-    v.x = cos(yaw_radians) * cos(pitch_radians);
-    v.y = sin(pitch_radians);
-    v.z = sin(yaw_radians) * cos(pitch_radians);
+    v.x = gj_cos(yaw_radians) * gj_cos(pitch_radians);
+    v.y = gj_sin(pitch_radians);
+    v.z = gj_sin(yaw_radians) * gj_cos(pitch_radians);
     return v;
 }
 

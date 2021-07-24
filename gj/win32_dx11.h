@@ -31,10 +31,10 @@ win32_init_directx11_render_views(ID3D11Device* device, IDXGISwapChain* swap_cha
 {
     ID3D11Texture2D* frame_buffer;
     HRESULT hr = swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&frame_buffer);
-    Assert(SUCCEEDED(hr));
+    gj_Assert(SUCCEEDED(hr));
 
     hr = device->CreateRenderTargetView(frame_buffer, 0, frame_buffer_view);
-    Assert(SUCCEEDED(hr));
+    gj_Assert(SUCCEEDED(hr));
 
     D3D11_TEXTURE2D_DESC depth_buffer_desc;
     frame_buffer->GetDesc(&depth_buffer_desc);
@@ -43,10 +43,10 @@ win32_init_directx11_render_views(ID3D11Device* device, IDXGISwapChain* swap_cha
 
     ID3D11Texture2D* depth_buffer;
     hr = device->CreateTexture2D(&depth_buffer_desc, NULL, &depth_buffer);
-    Assert(SUCCEEDED(hr));
+    gj_Assert(SUCCEEDED(hr));
 
     hr = device->CreateDepthStencilView(depth_buffer, NULL, depth_buffer_view);
-    Assert(SUCCEEDED(hr));
+    gj_Assert(SUCCEEDED(hr));
         
     frame_buffer->Release();
     depth_buffer->Release();
@@ -70,27 +70,27 @@ win32_init_directx11(HWND window, b32 disable_alt_enter_fullscreen = true)
 
     {
         HRESULT hr = D3D11CreateDevice(
-            NULL,                       // Specify nullptr to use the default adapter.
-            D3D_DRIVER_TYPE_HARDWARE,   // Create a device using the hardware graphics driver.
-            0,                          // Should be 0 unless the driver is D3D_DRIVER_TYPE_SOFTWARE.
-            device_flags,               // Set flags.
-            levels,                     // List of feature levels this app can support.
-            ArrayCount(levels),         // Size of the list above.
-            D3D11_SDK_VERSION,          // Always set this to D3D11_SDK_VERSION for Windows Store apps.
-            &g_win32_dx11.device,             // Returns the Direct3D device created.
-            &actual_level,              // Returns feature level of device created.
-            &g_win32_dx11.device_context      // Returns the device immediate context.
+            NULL,                        // Specify nullptr to use the default adapter.
+            D3D_DRIVER_TYPE_HARDWARE,    // Create a device using the hardware graphics driver.
+            0,                           // Should be 0 unless the driver is D3D_DRIVER_TYPE_SOFTWARE.
+            device_flags,                // Set flags.
+            levels,                      // List of feature levels this app can support.
+            gj_ArrayCount(levels),       // Size of the list above.
+            D3D11_SDK_VERSION,           // Always set this to D3D11_SDK_VERSION for Windows Store apps.
+            &g_win32_dx11.device,        // Returns the Direct3D device created.
+            &actual_level,               // Returns feature level of device created.
+            &g_win32_dx11.device_context // Returns the device immediate context.
         );
-        Assert(SUCCEEDED(hr));
+        gj_Assert(SUCCEEDED(hr));
     }
 
 #if GJ_DEBUG
     {
         HRESULT hr = g_win32_dx11.device->QueryInterface(__uuidof(ID3D11Debug), (void**)&g_win32_dx11.debug_context);
-        Assert(SUCCEEDED(hr));
+        gj_Assert(SUCCEEDED(hr));
         ID3D11InfoQueue* debug_queue;
         hr = g_win32_dx11.debug_context->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&debug_queue);
-        Assert(SUCCEEDED(hr));
+        gj_Assert(SUCCEEDED(hr));
         debug_queue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
         debug_queue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR,      true);
         // debug_queue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING,    true);
@@ -119,12 +119,12 @@ win32_init_directx11(HWND window, b32 disable_alt_enter_fullscreen = true)
         {
             IDXGIDevice* dxgi_device;
             HRESULT hr = g_win32_dx11.device->QueryInterface(__uuidof(IDXGIDevice), (void **)&dxgi_device);
-            Assert(SUCCEEDED(hr));
+            gj_Assert(SUCCEEDED(hr));
     
             IDXGIAdapter* adapter;
 
             hr = dxgi_device->GetAdapter(&adapter);
-            Assert(SUCCEEDED(hr));
+            gj_Assert(SUCCEEDED(hr));
             dxgi_device->Release();
             
             adapter->GetParent(IID_PPV_ARGS(&factory));
@@ -137,7 +137,7 @@ win32_init_directx11(HWND window, b32 disable_alt_enter_fullscreen = true)
             &g_win32_dx11.swap_chain
         );
         factory->Release();
-        Assert(SUCCEEDED(hr));
+        gj_Assert(SUCCEEDED(hr));
     }
     
     // TODO: https://docs.microsoft.com/en-us/windows/win32/direct3dgetstarted/work-with-dxgi
@@ -155,7 +155,7 @@ win32_init_directx11(HWND window, b32 disable_alt_enter_fullscreen = true)
         rasterizer_desc.CullMode = D3D11_CULL_BACK;
         rasterizer_desc.FrontCounterClockwise = false;
         HRESULT hr = g_win32_dx11.device->CreateRasterizerState(&rasterizer_desc, &g_win32_dx11.rasterizer_state);
-        Assert(SUCCEEDED(hr));
+        gj_Assert(SUCCEEDED(hr));
     }
 
     // ID3D11DepthStencilState
@@ -165,7 +165,7 @@ win32_init_directx11(HWND window, b32 disable_alt_enter_fullscreen = true)
         depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
         depth_stencil_desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
         HRESULT hr = g_win32_dx11.device->CreateDepthStencilState(&depth_stencil_desc, &g_win32_dx11.depth_stencil_state);
-        Assert(SUCCEEDED(hr));
+        gj_Assert(SUCCEEDED(hr));
     }
 
 #if 0
@@ -195,18 +195,18 @@ win32_init_directx11(HWND window, b32 disable_alt_enter_fullscreen = true)
     {
         IDXGIDevice* dxgi_device;
         HRESULT hr = g_win32_dx11.device->QueryInterface(__uuidof(IDXGIDevice), (void **)&dxgi_device);
-        Assert(SUCCEEDED(hr));
+        gj_Assert(SUCCEEDED(hr));
 
         IDXGIAdapter* dxgi_adapter;
         hr = dxgi_device->GetParent(__uuidof(IDXGIAdapter), (void **)&dxgi_adapter);
-        Assert(SUCCEEDED(hr));
+        gj_Assert(SUCCEEDED(hr));
         
         IDXGIFactory* dxgi_factory;
         hr = dxgi_adapter->GetParent(__uuidof(IDXGIFactory), (void **)&dxgi_factory);
-        Assert(SUCCEEDED(hr));
+        gj_Assert(SUCCEEDED(hr));
         
         hr = dxgi_factory->MakeWindowAssociation(window, DXGI_MWA_NO_ALT_ENTER);
-        Assert(SUCCEEDED(hr));
+        gj_Assert(SUCCEEDED(hr));
     }
 }
 

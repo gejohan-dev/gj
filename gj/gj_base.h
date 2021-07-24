@@ -5,7 +5,7 @@
 // projects.
 //
 
-/* #include <cstring> // memset */
+#include <cstring> // memset
 
 #define STB_SPRINTF_IMPLEMENTATION
 #include <libs/stb/stb_sprintf.h> // stbsp_sprintf
@@ -14,6 +14,7 @@
 // Types
 ///////////////////////////////////////////////////////////////////////////
 #include <stdint.h>
+#include <limits.h>
 
 typedef int32_t b32;
 
@@ -385,7 +386,7 @@ void initialize_arena(MemoryArena* arena, size_t size, u8* base)
     arena->used = 0;
 }
 
-void gj_memory_clear_arena(MemoryArena* arena)
+void clear_arena(MemoryArena* arena)
 {
     memset(arena->base, 0, arena->size);
     arena->used = 0;

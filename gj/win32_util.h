@@ -98,10 +98,10 @@ win32_get_last_write_time(const char* file_name)
 void win32_build_exe_file_path(char* output_path, const char* file_name)
 {
     char exe_base_path[BUFFER_SIZE];
-    size_t exe_base_path_length = GetModuleFileNameA(NULL, exe_base_path, ArrayCount(exe_base_path));
-    Assert(exe_base_path_length < ArrayCount(exe_base_path));
+    size_t exe_base_path_length = GetModuleFileNameA(NULL, exe_base_path, gj_ArrayCount(exe_base_path));
+    gj_Assert(exe_base_path_length < gj_ArrayCount(exe_base_path));
     // TODO: Implement error
-    Assert(WIN32_EXE_FILE_NAME);
+    gj_Assert(WIN32_EXE_FILE_NAME);
     exe_base_path_length -= strlen(WIN32_EXE_FILE_NAME);
     // Note: Cut-off the exe file name
     exe_base_path[exe_base_path_length] = '\0';
@@ -140,14 +140,15 @@ void win32_load_dll(Win32HotLoadedDLL* dll)
         //       pointing to things in the old dll
         char tmp_dll_path[BUFFER_SIZE];
         char unique_tmp_file_name[BUFFER_SIZE];
-        sprintf_s(unique_tmp_file_name, ArrayCount(unique_tmp_file_name), "tmp%d.dll", dll->tmp_dll_number);
+        stbsp_sprintf(unique_tmp_file_name, "tmp%d.dll", dll->tmp_dll_number);
         dll->tmp_dll_number++;
         win32_build_exe_file_path(tmp_dll_path, unique_tmp_file_name);
-        Assert(CopyFileA(dll->dll_file_path, tmp_dll_path, FALSE));
+        BOOL ok = CopyFileA(dll->dll_file_path, tmp_dll_path, FALSE);
+        gj_Assert(ok);
         
         dll->last_write_time = win32_get_last_write_time(dll->dll_file_path);
         dll->hmodule = LoadLibraryA(tmp_dll_path);
-        Assert(dll->hmodule);
+        gj_Assert(dll->hmodule);
     }
 }
 
@@ -167,7 +168,8 @@ void win32_init_window(HINSTANCE instance, WNDPROC window_proc, const char* wind
     window_class.hCursor = LoadCursor(0, IDC_ARROW);
     window_class.lpszClassName = window_title;
 
-    Assert(RegisterClassA(&window_class));
+    BOOL ok = RegisterClassA(&window_class);
+    gj_Assert(ok);
 
     g_win32_app.window = CreateWindowExA(
         0,
@@ -182,7 +184,7 @@ void win32_init_window(HINSTANCE instance, WNDPROC window_proc, const char* wind
         0,
         instance,
         0);
-    Assert(g_win32_app.window);
+    gj_Assert(g_win32_app.window);
 
     g_win32_app.device_context = GetDC(g_win32_app.window);
 }
