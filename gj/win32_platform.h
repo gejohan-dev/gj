@@ -9,7 +9,7 @@
 PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
 {
     PlatformFileHandle result;
-    gj_ZeroMemory(&result);
+    gj_ZeroStruct(&result);
     gj_Assert(sizeof(HANDLE) <= sizeof(result.handle));
 
     DWORD handle_permissions = 0;
@@ -52,7 +52,7 @@ void win32_read_data_from_file_handle(PlatformFileHandle file_handle, size_t off
     HANDLE handle = (HANDLE)file_handle.handle;
     
     OVERLAPPED overlapped;
-    gj_ZeroMemory(&overlapped);
+    gj_ZeroStruct(&overlapped);
     overlapped.Offset = offset & 0xFFFFFFFF;
     overlapped.OffsetHigh = (u32)((offset >> 32) & 0xFFFFFFFF);
 
@@ -67,7 +67,7 @@ void win32_write_data_to_file_handle(PlatformFileHandle file_handle, size_t offs
     HANDLE handle = (HANDLE)file_handle.handle;
 
     OVERLAPPED overlapped;
-    gj_ZeroMemory(&overlapped);
+    gj_ZeroStruct(&overlapped);
     overlapped.Offset = gj_safe_cast_u64_to_u32(offset);
     // NOTE: If offset becomes 64 bit I need to do:
     // overlapped.OffsetHigh = (u32)((offset >> 32) & 0xFFFFFFFF);

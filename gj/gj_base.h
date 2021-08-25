@@ -102,7 +102,8 @@ gj_safe_cast_u64_to_u32(u64 value)
 #define gj_SwapVar(type, x, y) do {##type __tmp = (x); (x) = (y); (y) = __tmp;} while(gj_False)
 #define gj_SwapArray(array, type, i, j) do {##type __tmp = array[i]; array[i] = array[j]; array[j] = __tmp;} while(gj_False)
 
-#define gj_ZeroMemory(Mem) do { memset(Mem, 0, sizeof(*(Mem))); } while(gj_False)
+#define gj_ZeroStruct(Struct)       do { memset(Struct, 0, sizeof(*(Struct))); } while(gj_False)
+#define gj_ZeroArray(Array, Length) do { memset(Array,  0, sizeof(*(Array)) * Length); } while(gj_False)
 
 inline void gj_set_flag  (u32* flags, u32 flag) { *flags |= (1 << flag); }
 inline void gj_unset_flag(u32* flags, u32 flag) { *flags &= ~(gj_BitmaskU32 & (1 << flag)); }
@@ -295,7 +296,7 @@ gj_start_timer(const char* name)
                g_debug_timers[debug_timer_index].active) { debug_timer_index++; }
         gj_Assert(debug_timer_index < gj_ArrayCount(g_debug_timers));
         
-        gj_ZeroMemory(&g_debug_timers[debug_timer_index]);
+        gj_ZeroStruct(&g_debug_timers[debug_timer_index]);
         g_debug_timers[debug_timer_index].active = gj_True;
         gj_string_copy(g_debug_timers[debug_timer_index].name, name);
         debug_timer = &g_debug_timers[debug_timer_index];
