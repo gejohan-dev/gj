@@ -30,6 +30,8 @@
 #define gj_Abs(x)        (((x)<0) ? -(x) : (x))
 #define gj_IsPositive(x) ((x) >= 0)
 
+inline b32 gj_float_eq(#define gj_FloatEq(X, Y, Eps) (gj_Abs((X) - (Y)) < Eps)
+
 inline f32 clamp(f32 min, f32 value, f32 max) { return value < min ? min : (value > max ? max : value); }
 inline f32 lerp(f32 a, f32 b, f32 x) { return (1.0f - x) * a + x * b; }
 inline f32 normalize(f32 a, f32 b, f32 x) { return gj_Min(1.0f, gj_Max(0.0f, (x - a) / (b - a))); }
@@ -100,15 +102,10 @@ inline f32 V2_get_angle_x_axis (V2f v)            { V2f a; a.x = 1.0f; a.y = 0.0
 inline V2f V2_rotate_90        (V2f v)            { gj_SwapVar(f32, v.x, v.y); v.x = -v.x; return v; }
 inline V2f V2_rotate           (V2f v, f32 a)
 {
-    V2f r1;
-    r1.x = gj_cos(a);
-    r1.y = -gj_sin(a);
-    V2f r2;
-    r2.x = gj_sin(a);
-    r2.y = gj_cos(a);
-    v.x = V2_dot(v, r1);
-    v.y = V2_dot(v, r2);
-    return v;
+    V2f result;
+    result.x = gj_cos(a) * v.x - gj_sin(a) * v.y;
+    result.y = gj_sin(a) * v.x + gj_cos(a) * v.y;
+    return result;
 }
 
 // Transform to other data types
@@ -174,12 +171,14 @@ V2_line_line_intersection(V2f line1_p1, V2f line1_p2,
     f32 x3 = line2_p1.x; f32 y3 = line2_p1.y;
     f32 x4 = line2_p2.x; f32 y4 = line2_p2.y;
 
+    f32 eps = 0.00001f;
+    
     f32 den = (y4-y3)*(x2-x1) - (x4-x3)*(y2-y1);
-    if (den != 0.0f)
+    if (!gj_FloatEq(den, 0.0f, eps))
     {
         f32 ua_num = (x4-x3)*(y1-y3) - (y4-y3)*(x1-x3);
         f32 ua = ua_num / den;
-        if (ua >= 0.0f)
+        if (ua > 0.0f && !gj_FloatEq(ua, 0.0f, eps))
         {
             result.x = x1 + ua * (x2 - x1);
             result.y = y1 + ua * (y2 - y1);
