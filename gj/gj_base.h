@@ -225,6 +225,26 @@ static s32 gj_parse_word(const char* s, char* dst, int dst_size)
 #endif
 
 ///////////////////////////////////////////////////////////////////////////
+// Array
+///////////////////////////////////////////////////////////////////////////
+#if defined(__cplusplus)
+#define __InArray(Type)                         \
+    b32 result = 0;                             \
+    for (Type i = 0; i < array_size; i++)       \
+    {                                           \
+        if (array[i] == element)                \
+        {                                       \
+            result = 1;                         \
+            break;                              \
+        }                                       \
+    }                                           \
+    return result;
+
+inline b32
+gj_InArray(u32 element, u32* array, u32 array_size) { __InArray(u32); }
+#endif
+
+///////////////////////////////////////////////////////////////////////////
 // Memory
 ///////////////////////////////////////////////////////////////////////////
 typedef struct MemoryArena

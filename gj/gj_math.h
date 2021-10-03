@@ -30,7 +30,8 @@
 #define gj_Abs(x)        (((x)<0) ? -(x) : (x))
 #define gj_IsPositive(x) ((x) >= 0)
 
-inline b32 gj_float_eq(#define gj_FloatEq(X, Y, Eps) (gj_Abs((X) - (Y)) < Eps)
+// TODO: Implement more exact version e.g. https://floating-point-gui.de/errors/comparison/
+inline b32 gj_float_eq(f32 x, f32 y, f32 eps) { return gj_Abs(x - y) < eps; }
 
 inline f32 clamp(f32 min, f32 value, f32 max) { return value < min ? min : (value > max ? max : value); }
 inline f32 lerp(f32 a, f32 b, f32 x) { return (1.0f - x) * a + x * b; }
@@ -174,11 +175,11 @@ V2_line_line_intersection(V2f line1_p1, V2f line1_p2,
     f32 eps = 0.00001f;
     
     f32 den = (y4-y3)*(x2-x1) - (x4-x3)*(y2-y1);
-    if (!gj_FloatEq(den, 0.0f, eps))
+    if (!gj_float_eq(den, 0.0f, eps))
     {
         f32 ua_num = (x4-x3)*(y1-y3) - (y4-y3)*(x1-x3);
         f32 ua = ua_num / den;
-        if (ua > 0.0f && !gj_FloatEq(ua, 0.0f, eps))
+        if (ua > 0.0f && !gj_float_eq(ua, 0.0f, eps))
         {
             result.x = x1 + ua * (x2 - x1);
             result.y = y1 + ua * (y2 - y1);
