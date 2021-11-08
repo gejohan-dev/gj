@@ -229,6 +229,29 @@ V2_line_rectangle_intersection(V2f line_p1, V2f line_p2,
     return result;
 }
 
+inline b32
+V2_rectangle_contains_point(V2f rectangle_start, V2f rectangle_end, V2f point)
+{
+    f32 r_min_x = gj_Min(rectangle_start.x, rectangle_end.x);
+    f32 r_max_x = gj_Max(rectangle_start.x, rectangle_end.x);
+    f32 r_min_y = gj_Min(rectangle_start.y, rectangle_end.y);
+    f32 r_max_y = gj_Max(rectangle_start.y, rectangle_end.y);
+    
+    return (r_min_x <= point.x &&
+            r_max_x >  point.x &&
+            r_min_y <= point.y &&
+            r_max_y >  point.y);
+}
+
+inline b32
+V2_rectangle_contains_rectangle(V2f rectangle_start, V2f rectangle_end,
+                                V2f p1, V2f p2, V2f p3, V2f p4)
+{
+    return (V2_rectangle_contains_point(rectangle_start, rectangle_end, p1) &&
+            V2_rectangle_contains_point(rectangle_start, rectangle_end, p2) &&
+            V2_rectangle_contains_point(rectangle_start, rectangle_end, p3) &&
+            V2_rectangle_contains_point(rectangle_start, rectangle_end, p4));
+}
 ///////////////////////////////////////////////////////////////////////////
 // Matrices
 ///////////////////////////////////////////////////////////////////////////

@@ -217,12 +217,32 @@ static s32 gj_parse_word(const char* s, char* dst, int dst_size)
 // if (something)
 // {
 //     int x = some_function();
-//     brk; // <----- if this isn't here you have to step through assembly to view result of some_function in x
+//     brk; // <----- if this line wasn't here, you would have to
+//                    step through assembly to view result of some_function in x
 // }
 // TODO: Try using __debugbreak
 #if defined(GJ_DEBUG)
 #define brk do { int ______ = 0; ______++; } while(gj_False)
-#endif
+#endif // #if defined(GJ_DEBUG)
+
+// Note: Put this function call on a line that you wish to keep, regardless of optimization level
+// ...some code that will be optimized...
+// gj_UnoptimizedLine(); // <--- This line will compile to something like: call gj_UnoptimizedLine
+// ...some more code that will be optimized
+// TODO: Add pragmas for Clang/GCC/Others...
+#if defined(GJ_DEBUG) && defined(_MSC_VER)
+
+#if defined(_MSC_VER)
+#pragma optimize("", off)
+#endif // #if defined(_MSC_VER)
+
+static void gj_UnoptimizedLine() { }
+
+#if defined(_MSC_VER)
+#pragma optimize("", on)
+#endif // #if defined(_MSC_VER)
+
+#endif // #if defined(GJ_DEBUG) && defined(_MSC_VER)
 
 ///////////////////////////////////////////////////////////////////////////
 // Array

@@ -29,6 +29,9 @@ PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
     else if (mode_flags & PlatformOpenFileModeFlags_Write)
     {
         handle_permissions |= GENERIC_WRITE;
+        // TODO: OPEN_ALWAYS - create file if not exists, should there be an option to
+        //       1) CREATE_NEW    - not overwrite
+        //       2) CREATE_ALWAYS - always overwrite
         handle_creation    = OPEN_ALWAYS;
         result.file_size = 0;
     }
@@ -39,6 +42,8 @@ PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
     result.full_file_name = (char*)g_platform_api.allocate_memory(file_name_size+1);
     memcpy(result.full_file_name, buffer, file_name_size+1);
 
+    // TODO: Add FILE_FLAG_SEQUENTIAL_SCAN to dwFlagsAndAttributes since most of the time
+    //       the app will just read the file top-to-bottom?
     result.handle = (void*)CreateFileA(result.full_file_name, handle_permissions,
                                        FILE_SHARE_READ, 0, handle_creation, FILE_ATTRIBUTE_NORMAL, 0);
     // TODO: handle invalid handle
