@@ -125,7 +125,7 @@ PlatformFileListing* win32_list_files(MemoryArena* memory_arena, const char* fil
 void* win32_allocate_memory(size_t size)
 {
 #if 0
-    void* result = VirtualAlloc(NULL, size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+    void* result = VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 #endif
     
 #if 1
