@@ -83,6 +83,9 @@ typedef u8 one_byte;
 
 #define gj_BytesToMegabytes(Bytes) ((double)(Bytes) / (double)(1024*1024))
 
+typedef void _dummy_f();
+#define gj_FunctionPointerSize (sizeof(_dummy_f*))
+
 #define gj_ArrayCount(array) (sizeof(array) / sizeof((array)[0]))
 
 inline u32
@@ -394,37 +397,67 @@ typedef u32         GetRemainingSamples(SoundBuffer sound_buffer);
 ///////////////////////////////////////////////////////////////////////////
 // PlatformAPI
 ///////////////////////////////////////////////////////////////////////////
+#define gj_VerifyPlatformAPI(PlatformAPI)                               \
+    do {                                                                \
+        char test[gj_FunctionPointerSize] = {};                         \
+        for (int i = 0; i < sizeof(PlatformAPI._os_api); i += gj_FunctionPointerSize) \
+        {                                                               \
+            _dummy_f* f = (_dummy_f*)((void*)(PlatformAPI._os_api + i)); \
+            gj_Assert(memcmp(f, test, gj_FunctionPointerSize)); \
+        }                                                               \
+    } while(0)
 typedef struct PlatformAPI
 {
+    //
     // OS API
-    GetFileHandle*          get_file_handle;
-    ReadDataFromFileHandle* read_data_from_file_handle;
-    WriteDataToFileHandle*  write_data_to_file_handle;
-    CloseFileHandle*        close_file_handle;
-    ListFiles*              list_files;
-    AllocateMemory*         allocate_memory;
-    DeallocateMemory*       deallocate_memory;
-    NewThread*              new_thread;
-    WaitForThreads*         wait_for_threads;
-    CheckThreadStatus*      check_thread_status;
-    BeginTicketMutex*       begin_ticket_mutex;
-    EndTicketMutex*         end_ticket_mutex;
+    //
+    union
+    {
+        struct
+        {
+            GetFileHandle*          get_file_handle;
+            ReadDataFromFileHandle* read_data_from_file_handle;
+            WriteDataToFileHandle*  write_data_to_file_handle;
+            CloseFileHandle*        close_file_handle;
+            ListFiles*              list_files;
+            AllocateMemory*         allocate_memory;
+            DeallocateMemory*       deallocate_memory;
+            NewThread*              new_thread;
+            WaitForThreads*         wait_for_threads;
+            CheckThreadStatus*      check_thread_status;
+            BeginTicketMutex*       begin_ticket_mutex;
+            EndTicketMutex*         end_ticket_mutex;
 #if GJ_DEBUG
-    DebugPrint*             debug_print;
+            DebugPrint*             debug_print;
 #endif
+        };
 
+#if GJ_DEBUG
+        u8 _os_api[13 * sizeof(GetFileHandle*)];
+#else
+        u8 _os_api[12 * sizeof(GetFileHandle*)];
+#endif
+    };
+
+    //
     // Audio API
+    //
     GetMaxQueuedSoundBuffers* get_max_queued_sound_buffers;
     QueuedSoundBuffers*       queued_sound_buffers;
     CreatesoundBuffer*        create_sound_buffer;
     SubmitSoundBuffer*        submit_sound_buffer;
     GetRemainingSamples*      get_remaining_samples;
-        
+
+    //
     // Memory
-    void* memory;
+    //
+    void*  memory;
     size_t memory_size;
-        
-    b32 should_update_window_size;
+
+    //
+    // Window dimensions
+    //
+    b32 should_update_window_size; // TODO: Store prev sizes instead?
     u32 window_width;
     u32 window_height;
 } PlatformAPI;

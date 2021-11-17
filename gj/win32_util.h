@@ -15,7 +15,6 @@ struct Win32App
 {
     HWND window;
     HDC device_context;
-    V2u window_dimensions;
 };
 global_variable Win32App g_win32_app;
 

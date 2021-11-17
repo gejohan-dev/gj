@@ -334,7 +334,7 @@ u32 win32_get_remaining_samples(SoundBuffer sound_buffer)
 ///////////////////////////////////////////////////////////////////////////
 // Init
 ///////////////////////////////////////////////////////////////////////////
-void win32_init_platform_api()
+void win32_init_platform_api(size_t memory_size)
 {
     g_platform_api.get_file_handle            = win32_get_file_handle;
     g_platform_api.read_data_from_file_handle = win32_read_data_from_file_handle;
@@ -351,12 +351,16 @@ void win32_init_platform_api()
 #if GJ_DEBUG
     g_platform_api.debug_print                = win32_debug_print;
 #endif
-
+    gj_VerifyPlatformAPI(g_platform_api);
+    
     g_platform_api.get_max_queued_sound_buffers = win32_get_max_queued_sound_buffers;
     g_platform_api.queued_sound_buffers         = win32_queued_sound_buffers;
     g_platform_api.create_sound_buffer          = win32_create_sound_buffer;
     g_platform_api.submit_sound_buffer          = win32_submit_sound_buffer;
     g_platform_api.get_remaining_samples        = win32_get_remaining_samples;
+
+    g_platform_api.memory      = g_platform_api.allocate_memory(memory_size);
+    g_platform_api.memory_size = memory_size;
 }
 
 #endif

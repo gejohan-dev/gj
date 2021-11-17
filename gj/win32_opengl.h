@@ -129,7 +129,7 @@ win32_create_opengl_context(HDC device_ctx)
         WGL_CONTEXT_MAJOR_VERSION_ARB, major_version,
         WGL_CONTEXT_MINOR_VERSION_ARB, minor_version,
         WGL_CONTEXT_FLAGS_ARB, 0
-#if SIDESCROLLER_DEBUG
+#if GJ_DEBUG
         |WGL_CONTEXT_DEBUG_BIT_ARB
 #endif
         ,

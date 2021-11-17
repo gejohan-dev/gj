@@ -103,17 +103,17 @@ win32_init_directx11(HWND window, b32 disable_alt_enter_fullscreen = true)
     {
         DXGI_SWAP_CHAIN_DESC desc;
         ZeroMemory(&desc, sizeof(DXGI_SWAP_CHAIN_DESC));
-        desc.Windowed = TRUE; // Sets the initial state of full-screen mode.
-        desc.BufferCount = 2;
-        desc.BufferDesc.Width  = 0;
-        desc.BufferDesc.Height = 0;
-        desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        desc.Windowed           = TRUE; // Sets the initial state of full-screen mode.
+        desc.BufferCount        = 2;
+        desc.BufferDesc.Width   = 0;
+        desc.BufferDesc.Height  = 0;
+        desc.BufferDesc.Format  = DXGI_FORMAT_R8G8B8A8_UNORM;
         desc.BufferDesc.Scaling = DXGI_MODE_SCALING_STRETCHED;
-        desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        desc.SampleDesc.Count = 1;      //multisampling setting
-        desc.SampleDesc.Quality = 0;    //vendor-specific flag
-        desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-        desc.OutputWindow = window;
+        desc.BufferUsage        = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        desc.SampleDesc.Count   = 1; // multisampling setting
+        desc.SampleDesc.Quality = 0; // vendor-specific flag
+        desc.SwapEffect         = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        desc.OutputWindow       = window;
 
         IDXGIFactory* factory;
         {
