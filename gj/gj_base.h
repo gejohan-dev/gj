@@ -31,6 +31,7 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
+typedef u8 byte;
 typedef u8 one_byte;
 
 #define internal        static
@@ -92,6 +93,14 @@ inline u32
 gj_safe_cast_u64_to_u32(u64 value)
 { gj_Assert(value <= gj_BitmaskU32); return (u32)(value & gj_BitmaskU32); }
 
+inline u32
+gj_safe_cast_s32_to_u32(s32 value)
+{ gj_Assert(value >= 0); return (u32)value; }
+
+inline u32*
+gj_safe_cast_s32_to_u32(s32* value)
+{ gj_Assert(value >= 0); return (u32*)value; }
+
 #define gj_IsCharacter(c) ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
 #define gj_IsDigit(c) (c >= '0' && c <= '9')
 #define gj_IsWhitespace(c) (c == ' ' || c == '\n' || c == '\r' || c == '\t')
@@ -105,12 +114,26 @@ gj_safe_cast_u64_to_u32(u64 value)
 #define gj_SwapVar(type, x, y) do {##type __tmp = (x); (x) = (y); (y) = __tmp;} while(gj_False)
 #define gj_SwapArray(array, type, i, j) do {##type __tmp = array[i]; array[i] = array[j]; array[j] = __tmp;} while(gj_False)
 
+#define gj_ZeroMem(Mem, Size)    do { memset(Mem, 0, Size); } while(gj_False)
 #define gj_ZeroStruct(Struct)       do { memset(Struct, 0, sizeof(*(Struct))); } while(gj_False)
 #define gj_ZeroArray(Array, Length) do { memset(Array,  0, sizeof(*(Array)) * Length); } while(gj_False)
 
-inline void gj_set_flag  (u32* flags, u32 flag) { *flags |= (1 << flag); }
-inline void gj_unset_flag(u32* flags, u32 flag) { *flags &= ~(gj_BitmaskU32 & (1 << flag)); }
-inline b32  gj_get_flag  (u32 flags,  u32 flag) { return flags & (1 << flag); }
+#if defined(GJ_DEBUG)
+#define gj_UnusedParam(Type, Param) Type
+#else
+#define gj_UnusedParam(Type, Param) Type Param
+#endif
+
+#if defined(GJ_DEBUG)
+#define gj_OnlyDebug(Exp) Exp
+#else
+#define gj_OnlyDebug(Exp)
+#endif
+
+inline void gj_set_flag   (u32* flags, u32 flag) { *flags |= (1 << flag); }
+inline void gj_unset_flag (u32* flags, u32 flag) { *flags &= ~(gj_BitmaskU32 & (1 << flag)); }
+inline b32  gj_get_flag   (u32 flags,  u32 flag) { return flags & (1 << flag); }
+inline void gj_toggle_flag(u32* flags, u32 flag) { *flags ^= (1 << flag); }
 
 inline u32 gj_string_length(char* s)
 {
@@ -145,7 +168,7 @@ static s32 gj_get_s32_length(s32 number)
     return result;
 }
 
-static void build_binary_string(u32 number, char* buffer, u32 max_size, u32 padding)
+static void build_binary_string(u32 number, char* buffer, u32 padding)
 {
     if (number == 0)
     {
@@ -287,6 +310,13 @@ void initialize_arena(MemoryArena* arena, size_t size, u8* base)
     arena->used = 0;
 }
 
+MemoryArena create_memory_arena(size_t size, u8* base)
+{
+    MemoryArena result;
+    initialize_arena(&result, size, base);
+    return result;
+}
+
 void clear_arena(MemoryArena* arena)
 {
     memset(arena->base, 0, arena->size);
@@ -397,6 +427,7 @@ typedef u32         GetRemainingSamples(SoundBuffer sound_buffer);
 ///////////////////////////////////////////////////////////////////////////
 // PlatformAPI
 ///////////////////////////////////////////////////////////////////////////
+#if defined(GJ_DEBUG)
 #define gj_VerifyPlatformAPI(PlatformAPI)                               \
     do {                                                                \
         char test[gj_FunctionPointerSize] = {};                         \
@@ -406,6 +437,10 @@ typedef u32         GetRemainingSamples(SoundBuffer sound_buffer);
             gj_Assert(memcmp(f, test, gj_FunctionPointerSize)); \
         }                                                               \
     } while(0)
+#else
+#define gj_VerifyPlatformAPI(PlatformAPI)
+#endif
+
 typedef struct PlatformAPI
 {
     //
@@ -460,6 +495,10 @@ typedef struct PlatformAPI
     b32 should_update_window_size; // TODO: Store prev sizes instead?
     u32 window_width;
     u32 window_height;
+
+#if GJ_DEBUG
+    b32 debug_mode_on;
+#endif
 } PlatformAPI;
 
 static PlatformAPI g_platform_api;

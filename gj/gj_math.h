@@ -31,7 +31,12 @@
 #define gj_IsPositive(x) ((x) >= 0)
 
 // TODO: Implement more exact version e.g. https://floating-point-gui.de/errors/comparison/
-inline b32 gj_float_eq(f32 x, f32 y, f32 eps) { return gj_Abs(x - y) < eps; }
+#define GJ_FLOAT_EPS 0.00001f
+inline b32 gj_float_eq(f32 x, f32 y, f32 eps = GJ_FLOAT_EPS) { return gj_Abs(x - y) < eps; }
+// x <= y
+inline b32 gj_float_leq(f32 x, f32 y, f32 eps = GJ_FLOAT_EPS) { return x < y || gj_float_eq(x, y, eps); }
+// x >= y
+inline b32 gj_float_geq(f32 x, f32 y, f32 eps = GJ_FLOAT_EPS) { return x > y || gj_float_eq(x, y, eps); }
 
 inline f32 clamp(f32 min, f32 value, f32 max) { return value < min ? min : (value > max ? max : value); }
 inline f32 lerp(f32 a, f32 b, f32 x) { return (1.0f - x) * a + x * b; }
@@ -66,12 +71,14 @@ inline f32 gj_tan(f32 x) { return tanf(x); }
     } V2##name
 V2(f, f32);
 V2(u, u32);
+V2(i, s32);
 
 #define V3(name, type)                          \
     typedef union V3##name {                    \
         struct { type x; type y; type z; };     \
         struct { type r; type g; type b; };     \
         type array[3];                          \
+        type a[3];                              \
         type xy[2];                             \
         V2##name v2;                            \
     } V3##name
@@ -110,7 +117,39 @@ inline V2f V2_rotate           (V2f v, f32 a)
 }
 
 // Transform to other data types
-inline V3f V2_to_V3(V2f v, f32 z)                   { V3f v3f; v3f.x = v.x; v3f.y = v.y; v3f.z = z; return v3f; }
+inline V3f V2_to_V3(V2f v, f32 z = 0.0f)                   { V3f v3f; v3f.x = v.x; v3f.y = v.y; v3f.z = z; return v3f; }
+
+// Area = 1/2 * (x1(y2 - y3) + x2(y3 - y1) + x3(y1 - y2))
+f32 V2_triangle_area(V2f t1, V2f t2, V2f t3)
+{
+    f32 result;
+    f32 a = t1.x * (t2.y - t3.y);
+    f32 b = t2.x * (t3.y - t1.y);
+    f32 c = t3.x * (t1.y - t2.y);
+    result = gj_Abs((a + b + c) / 2.0f);
+    return result;
+}
+
+inline V3f V3_sub(V3f,V3f);
+inline V3f V3_cross(V3f,V3f);
+inline f32 V3_dot(V3f,V3f);
+bool _same_side(V2f p1, V2f p2, V2f a, V2f b)
+{
+    bool result;
+    V3f ba = V3_sub(V2_to_V3(b), V2_to_V3(a));
+    V3f v1 = V3_cross(ba, V3_sub(V2_to_V3(p1), V2_to_V3(a)));
+    V3f v2 = V3_cross(ba, V3_sub(V2_to_V3(p2), V2_to_V3(a)));
+    result = gj_float_geq(V3_dot(v1, v2), 0.0f);
+    return result;
+}
+bool V2_point_on_triangle(V2f p, V2f t1, V2f t2, V2f t3)
+{
+    bool result;
+    result = (_same_side(p, t1, t2, t3) &&
+              _same_side(p, t2, t1, t3) &&
+              _same_side(p, t3, t1, t2));
+    return result;
+}
 
 #if defined(__cplusplus)
 inline V3f V3_add        (V3f v0, V3f v1)             { V3f v; v.x = (v0.x + v1.x); v.y = (v0.y + v1.y); v.z = (v0.z + v1.z); return v; }
@@ -143,6 +182,9 @@ inline V3f V3_normalize  (V3f v)
 }
 inline f32 V3_dot        (V3f v0, V3f v1)             { return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z; }
 inline V3f V3_cross      (V3f v0, V3f v1)             { V3f v; v.x = (v0.y * v1.z - v0.z * v1.y); v.y = (v0.z * v1.x - v0.x * v1.z); v.z = (v0.x * v1.y - v0.y * v1.x); return v; }
+inline V3f V3_neg        (V3f v)                      { return {-v.x, -v.y, -v.z}; }
+
+inline V2f V3_xz(V3f v) { return {v.x, v.z}; }
 
 V3f V3_triangle_normal(V3f p1, V3f p2, V3f p3)
 {
@@ -152,6 +194,56 @@ V3f V3_triangle_normal(V3f p1, V3f p2, V3f p3)
     V3f normal_comp_2 = V3_sub(p3, p1);
     result = V3_cross(normal_comp_1, normal_comp_2);
     result = V3_normalize(result);
+    return result;
+}
+
+V3f V3_project(V3f v0, V3f v1)
+{
+    V3f result;
+    f32 d = V3_dot(v0, v1);
+    f32 l = V3_length(v1);
+    result = V3_mul(d / (l * l), v1);
+    return result;
+}
+
+V3f V3_project_onto_triangle(V3f p, V3f t1, V3f t2, V3f t3)
+{
+    V3f result;
+    V3f n = V3_triangle_normal(t1, t2, t3);
+    V3f p_orig = V3_sub(p, t1);
+    f32 dist = V3_dot(p_orig, n);
+    result = V3_sub(p, V3_mul(dist, n));
+    /* result = V3_sub(p, V3_project(p, n)); */
+    return result;
+}
+
+f32 V3_triangle_area(V3f t1, V3f t2, V3f t3)
+{
+    f32 result;
+    V3f t1_t2 = V3_sub(t2, t1);
+    V3f t1_t3 = V3_sub(t3, t1);
+    V3f c = V3_cross(t1_t2, t1_t3);
+    result = V3_length(c) / 2.0f;
+    return result;
+}
+
+// NOTE: Assumes p is projected onto the plane of the triangle already
+bool V3_point_on_triangle(V3f p, V3f t1, V3f t2, V3f t3)
+{
+    bool result;
+    f32 t_area       = V3_triangle_area(t1, t2, t3);
+    V3f p_t1         = V3_sub(t1, p);
+    V3f p_t2         = V3_sub(t2, p);
+    V3f p_t3         = V3_sub(t2, p);
+    f32 p_t2_t3_area = V3_triangle_area(p, p_t2, p_t3);
+    f32 p_t3_t1_area = V3_triangle_area(p, p_t3, p_t1);
+    f32 a            = p_t2_t3_area / t_area;
+    f32 b            = p_t3_t1_area / t_area;
+    f32 y            = 1 - a - b;
+    result = (gj_float_geq(a, 0.0f) && gj_float_leq(a, 1.0f) &&
+              gj_float_geq(b, 0.0f) && gj_float_leq(b, 1.0f) &&
+              gj_float_geq(y, 0.0f) && gj_float_leq(y, 1.0f) &&
+              gj_float_eq(a + b + y, 1.0f));
     return result;
 }
 
@@ -329,6 +421,21 @@ inline V3f M4x4_mul_V3f(M4x4 m, V3f v)
     return result;
 }
 
+internal inline M4x4
+M4x4_translation_matrix(V3f translation)
+{
+    M4x4 result = {
+        1.0f, 0.0f, 0.0f, translation.x,
+        0.0f, 1.0f, 0.0f, translation.y,
+        0.0f, 0.0f, 1.0f, translation.z,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+    return result;
+}
+
+internal inline V3f
+M4x4_get_translation(M4x4 m) { return {m.m[0][3], m.m[1][3], m.m[2][3]}; }
+
 // NOTE: All of these use pass-by-reference (C++ only feature)
 //       ported some that is used internally in this file to c below
 #if defined(__cplusplus)
@@ -421,8 +528,9 @@ M4x4 M4x4_model_view_matrix(V3f camera_pos, V3f camera_direction, V3f up, b32 tr
 #define M4x4_model_view_matrix(camera_pos, camera_direction, up) M4x4_model_view_matrix(camera_pos, camera_direction, up, true)
 #endif
 {
+    camera_direction = V3_normalize(camera_direction);
     V3f camera_right = V3_normalize(V3_cross(up, camera_direction));
-    V3f camera_up = V3_cross(camera_direction, camera_right);
+    V3f camera_up = V3_normalize(V3_cross(camera_direction, camera_right));
     M4x4 result = {
         camera_right.x,     camera_right.y,     camera_right.z,     0.0f,
         camera_up.x,        camera_up.y,        camera_up.z,        0.0f,
@@ -464,7 +572,8 @@ M4x4 M4x4_fixed_forward_matrix(V3f camera_pos)
 
 M4x4 M4x4_inverse_fixed_forward_matrix(M4x4 fixed_forward_matrix, V3f camera_pos)
 {
-    M4x4 result = M4x4_identity();
+    M4x4 result = fixed_forward_matrix;
+    gj_Assert(result.a[0] != fixed_forward_matrix.a[0]);
     result.m[0][3] =  camera_pos.x;
     result.m[1][3] =  camera_pos.y;
     result.m[2][3] = -camera_pos.z;
@@ -516,7 +625,8 @@ M4x4 M4x4_orthographic_matrix(f32 width, f32 height,
 
 M4x4 M4x4_inverse_orthographic_matrix(M4x4 orthographic_matrix)
 {
-    M4x4 result = M4x4_identity();
+    M4x4 result = orthographic_matrix;
+    gj_Assert(result.a[0] != orthographic_matrix.a[0]);
     return result;
 }
 
