@@ -88,6 +88,8 @@ V3(f, f32);
     typedef union V4##name {                                    \
         struct { type x;     type y;      type z; type w; };    \
         struct { type r;     type g;      type b; type a; };    \
+        type xyz[3];                                            \
+        V3##name v3;                                            \
     } V4##name
 V4(f, f32);
 
@@ -648,7 +650,7 @@ inline b32
 rectangle_bounds_check(f32 px, f32 py, f32 rx1, f32 rx2, f32 ry1, f32 ry2) { return px >= rx1 && px < rx2 && py >= ry1 && py < ry2; }
 
 f32 ray_plane_collision(V3f v0, V3f v1, V3f v2,
-                    V3f ray_origin, V3f ray_direction)
+                        V3f ray_origin, V3f ray_direction)
 {
     f32 result = 0.0f;
     V3f normal = V3_triangle_normal(v0, v1, v2);
