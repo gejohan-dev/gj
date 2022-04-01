@@ -618,10 +618,10 @@ M4x4 M4x4_orthographic_matrix(f32 width, f32 height,
     M4x4 result = M4x4_identity();
     result.a[0] = 2.0f / width;
     result.a[5] = 2.0f / height;
-    result.a[10] = -2.0f / (far_plane - near_plane);
+    result.a[10] = 2.0f / (far_plane - near_plane);
     result.a[3]  = -1.0f;
     result.a[7]  = -1.0f;
-    result.a[11] = -1.0f;
+    result.a[11] = -(far_plane + near_plane) / (far_plane - near_plane);
     return result;
 }
 
