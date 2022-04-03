@@ -612,16 +612,21 @@ M4x4 M4x4_inverse_projection_matrix(M4x4 projection_matrix)
     return result;
 }
 
-M4x4 M4x4_orthographic_matrix(f32 width, f32 height,
-                              f32 near_plane, f32 far_plane)
+/* M4x4 M4x4_orthographic_matrix(f32 left, f32 right, f32 up, f32 down, */
+M4x4 M4x4_orthographic_matrix(f32 aspect_w_over_h, f32 near_plane, f32 far_plane)
 {
     M4x4 result = M4x4_identity();
-    result.a[0] = 2.0f / width;
-    result.a[5] = 2.0f / height;
-    result.a[10] = 2.0f / (far_plane - near_plane);
-    result.a[3]  = -1.0f;
-    result.a[7]  = -1.0f;
+    result.m[1][1] = aspect_w_over_h;
+    result.m[2][2] = 2.0f / (near_plane - far_plane);
+    result.m[2][3] = (near_plane + far_plane) / (near_plane - far_plane);
+#if 0
+    result.a[0] = 2.0f / (right - left);
+    result.a[5] = 2.0f / (up - down);
+    result.a[10] = -2.0f / (far_plane - near_plane);
+    result.a[3]  = -(right + left) / (right - left);
+    result.a[7]  = -(up + down) / (up - down);
     result.a[11] = -(far_plane + near_plane) / (far_plane - near_plane);
+#endif
     return result;
 }
 
