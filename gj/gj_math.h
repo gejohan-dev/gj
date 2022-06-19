@@ -183,13 +183,14 @@ inline V3f V3_normalize  (V3f v)
 inline f32 V3_dot        (V3f v0, V3f v1)             { return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z; }
 inline V3f V3_cross      (V3f v0, V3f v1)             { V3f v; v.x = (v0.y * v1.z - v0.z * v1.y); v.y = (v0.z * v1.x - v0.x * v1.z); v.z = (v0.x * v1.y - v0.y * v1.x); return v; }
 inline V3f V3_neg        (V3f v)                      { return {-v.x, -v.y, -v.z}; }
+inline f32 V3_distance   (V3f v0, V3f v1)             { return V3_length(V3_sub(v0, v1)); }
 
 inline V2f V3_xz(V3f v) { return {v.x, v.z}; }
 
 V3f V3_triangle_normal(V3f p1, V3f p2, V3f p3)
 {
     V3f result;
-    gj_ZeroStruct(&result);
+    gj__ZeroStruct(result);
     V3f normal_comp_1 = V3_sub(p2, p1);
     V3f normal_comp_2 = V3_sub(p3, p1);
     result = V3_cross(normal_comp_1, normal_comp_2);
@@ -363,7 +364,7 @@ typedef union M4x4
 } M4x4;
 
 inline M4x4 M4x4_identity()
-{ M4x4 m; gj_ZeroStruct(&m); m.a[0] = 1.0f; m.a[5] = 1.0f; m.a[10] = 1.0f; m.a[15] = 1.0f; return m; }
+{ M4x4 m; gj__ZeroStruct(m); m.a[0] = 1.0f; m.a[5] = 1.0f; m.a[10] = 1.0f; m.a[15] = 1.0f; return m; }
 
 #if defined(__cplusplus)
 inline M4x4 M4x4_mul(M4x4 m, M4x4 n)
@@ -599,7 +600,7 @@ M4x4 M4x4_projection_matrix(f32 field_of_view_degrees, f32 aspect_w_over_h,
 M4x4 M4x4_inverse_projection_matrix(M4x4 projection_matrix)
 {
     M4x4 result;
-    gj_ZeroStruct(&result);
+    gj__ZeroStruct(result);
     result.a[0]  = 1.0f / projection_matrix.a[0];
     result.a[5]  = 1.0f / projection_matrix.a[5];
     result.a[10] = 0.0f;

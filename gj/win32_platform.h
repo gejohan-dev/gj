@@ -3,13 +3,33 @@
 
 #include <gj/gj_base.h> // PlatformAPI
 
+internal void
+win32_assert(bool exp)
+{
+    if (!exp)
+    {
+        char* buffer = 0;
+        DWORD error = GetLastError();
+        FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER,
+                       NULL, 
+                       error,
+                       0,
+                       (LPTSTR)&buffer, 
+                       0, 
+                       NULL);
+        MessageBoxA(NULL, buffer, "Error", MB_OK);
+        __debugbreak();
+        ExitProcess(1);
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // OS API
 ///////////////////////////////////////////////////////////////////////////
 PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
 {
     PlatformFileHandle result;
-    gj_ZeroStruct(&result);
+    gj__ZeroStruct(result);
 
     DWORD handle_permissions = 0;
     DWORD handle_creation = 0;
@@ -20,7 +40,7 @@ PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
 
         WIN32_FILE_ATTRIBUTE_DATA file_attribute_data;
         gj_OnlyDebug(BOOL ok = )GetFileAttributesExA(file_name, GetFileExInfoStandard, &file_attribute_data);
-        gj_Assert(ok);
+        win32_assert(ok);
         // TODO: If files ever get this big I need to implement handling when reading data by DWORD in ReadFile
         gj_Assert(file_attribute_data.nFileSizeHigh == 0);
         result.file_size = file_attribute_data.nFileSizeLow;
@@ -56,7 +76,7 @@ void win32_read_data_from_file_handle(PlatformFileHandle file_handle, size_t off
     HANDLE handle = (HANDLE)file_handle.handle;
     
     OVERLAPPED overlapped;
-    gj_ZeroStruct(&overlapped);
+    gj__ZeroStruct(overlapped);
     overlapped.Offset = offset & 0xFFFFFFFF;
     overlapped.OffsetHigh = (u32)((offset >> 32) & 0xFFFFFFFF);
 
@@ -71,7 +91,7 @@ void win32_write_data_to_file_handle(PlatformFileHandle file_handle, size_t offs
     HANDLE handle = (HANDLE)file_handle.handle;
 
     OVERLAPPED overlapped;
-    gj_ZeroStruct(&overlapped);
+    gj__ZeroStruct(overlapped);
     overlapped.Offset = gj_safe_cast_u64_to_u32(offset);
     // NOTE: If offset becomes 64 bit I need to do:
     // overlapped.OffsetHigh = (u32)((offset >> 32) & 0xFFFFFFFF);

@@ -92,7 +92,7 @@ gj_obj_loader_load(const char* obj_filename,
                    s32* out_indices, const u32 indices_max_count, u32* index_count)
 {
     GJ_ObjLoader_ParseState parse_state;
-    gj_ZeroStruct(&parse_state);
+    gj__ZeroStruct(parse_state);
 
     parse_state.buffer = (u8*)g_platform_api.allocate_memory(1024 * 1024 * 1024);    
     PlatformFileHandle obj_file_handle = g_platform_api.get_file_handle(obj_filename, PlatformOpenFileModeFlags_Read);

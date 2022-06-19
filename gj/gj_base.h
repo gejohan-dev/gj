@@ -115,7 +115,7 @@ gj_safe_cast_s32_to_u32(s32* value)
 #define gj_SwapArray(array, type, i, j) do {##type __tmp = array[i]; array[i] = array[j]; array[j] = __tmp;} while(gj_False)
 
 #define gj_ZeroMem(Mem, Size)    do { memset(Mem, 0, Size); } while(gj_False)
-#define gj_ZeroStruct(Struct)       do { memset(Struct, 0, sizeof(*(Struct))); } while(gj_False)
+#define gj__ZeroStruct(Struct)       do { memset(&Struct, 0, sizeof(Struct)); } while(gj_False)
 #define gj_ZeroArray(Array, Length) do { memset(Array,  0, sizeof(*(Array)) * Length); } while(gj_False)
 
 #if defined(GJ_DEBUG)
