@@ -378,8 +378,11 @@ void win32_init_platform_api(size_t memory_size)
     g_platform_api.submit_sound_buffer          = win32_submit_sound_buffer;
     g_platform_api.get_remaining_samples        = win32_get_remaining_samples;
 
-    g_platform_api.memory      = g_platform_api.allocate_memory(memory_size);
-    g_platform_api.memory_size = memory_size;
+    if (memory_size > 0)
+    {
+        g_platform_api.memory      = g_platform_api.allocate_memory(memory_size);
+        g_platform_api.memory_size = memory_size;
+    }
 }
 
 #endif

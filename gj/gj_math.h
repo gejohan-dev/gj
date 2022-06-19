@@ -88,6 +88,8 @@ V3(f, f32);
     typedef union V4##name {                                    \
         struct { type x;     type y;      type z; type w; };    \
         struct { type r;     type g;      type b; type a; };    \
+        type xyz[3];                                            \
+        V3##name v3;                                            \
     } V4##name
 V4(f, f32);
 
@@ -611,16 +613,21 @@ M4x4 M4x4_inverse_projection_matrix(M4x4 projection_matrix)
     return result;
 }
 
-M4x4 M4x4_orthographic_matrix(f32 width, f32 height,
-                              f32 near_plane, f32 far_plane)
+/* M4x4 M4x4_orthographic_matrix(f32 left, f32 right, f32 up, f32 down, */
+M4x4 M4x4_orthographic_matrix(f32 aspect_w_over_h, f32 near_plane, f32 far_plane)
 {
     M4x4 result = M4x4_identity();
-    result.a[0] = 2.0f / width;
-    result.a[5] = 2.0f / height;
+    result.m[1][1] = aspect_w_over_h;
+    result.m[2][2] = 2.0f / (near_plane - far_plane);
+    result.m[2][3] = (near_plane + far_plane) / (near_plane - far_plane);
+#if 0
+    result.a[0] = 2.0f / (right - left);
+    result.a[5] = 2.0f / (up - down);
     result.a[10] = -2.0f / (far_plane - near_plane);
-    result.a[3]  = -1.0f;
-    result.a[7]  = -1.0f;
-    result.a[11] = -1.0f;
+    result.a[3]  = -(right + left) / (right - left);
+    result.a[7]  = -(up + down) / (up - down);
+    result.a[11] = -(far_plane + near_plane) / (far_plane - near_plane);
+#endif
     return result;
 }
 
@@ -649,7 +656,7 @@ inline b32
 rectangle_bounds_check(f32 px, f32 py, f32 rx1, f32 rx2, f32 ry1, f32 ry2) { return px >= rx1 && px < rx2 && py >= ry1 && py < ry2; }
 
 f32 ray_plane_collision(V3f v0, V3f v1, V3f v2,
-                    V3f ray_origin, V3f ray_direction)
+                        V3f ray_origin, V3f ray_direction)
 {
     f32 result = 0.0f;
     V3f normal = V3_triangle_normal(v0, v1, v2);
