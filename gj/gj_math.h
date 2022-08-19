@@ -180,7 +180,9 @@ inline V3f V3_div        (f32 x, V3f v)               { v.x  = (x / v.x); v.y = 
 inline V3f V3_normalize  (V3f v)
 {
     f32 l = V3_length(v);
-    v.x = (v.x / l); v.y = (v.y / l); v.z = (v.z / l); return v;
+    gj_Assert(l != 0.0f);
+    v.x = (v.x / l); v.y = (v.y / l); v.z = (v.z / l);
+    return v;
 }
 inline f32 V3_dot        (V3f v0, V3f v1)             { return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z; }
 inline V3f V3_cross      (V3f v0, V3f v1)             { V3f v; v.x = (v0.y * v1.z - v0.z * v1.y); v.y = (v0.z * v1.x - v0.x * v1.z); v.z = (v0.x * v1.y - v0.y * v1.x); return v; }
@@ -523,6 +525,20 @@ M4x4_apply_transpose(M4x4* m)
     gj_SwapArray(m->a, f32, 11, 14);
 }
 #endif
+
+inline V3f
+M4x4_get_scaling(M4x4 m)
+{
+    return {m.m[0][0], m.m[1][1], m.m[2][2]};
+}
+
+inline void
+M4x4_apply_scaling(M4x4* m, f32 scale)
+{
+    m->m[0][0] *= scale;
+    m->m[1][1] *= scale;
+    m->m[2][2] *= scale;
+}
 
 #if defined(__cplusplus)
 M4x4 M4x4_model_view_matrix(V3f camera_pos, V3f camera_direction, V3f up, b32 translate = true)

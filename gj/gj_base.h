@@ -130,6 +130,8 @@ gj_safe_cast_s32_to_u32(s32* value)
 #define gj_OnlyDebug(Exp)
 #endif
 
+#define gj_MemberSize(Type, Member) (sizeof(((Type*)0)->Member))
+
 inline void gj_set_flag   (u32* flags, u32 flag) { *flags |= (1 << flag); }
 inline void gj_unset_flag (u32* flags, u32 flag) { *flags &= ~(gj_BitmaskU32 & (1 << flag)); }
 inline b32  gj_get_flag   (u32 flags,  u32 flag) { return flags & (1 << flag); }

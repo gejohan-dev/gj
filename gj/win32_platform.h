@@ -3,6 +3,7 @@
 
 #include <gj/gj_base.h> // PlatformAPI
 
+#if defined(GJ_DEBUG)
 internal void
 win32_assert(bool exp)
 {
@@ -22,6 +23,9 @@ win32_assert(bool exp)
         ExitProcess(1);
     }
 }
+#else
+#define win32_assert(___)
+#endif
 
 ///////////////////////////////////////////////////////////////////////////
 // OS API
