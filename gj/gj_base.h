@@ -34,7 +34,6 @@ typedef uint64_t u64;
 typedef u8 byte;
 typedef u8 one_byte;
 
-#define internal        static
 #define global_variable static
 
 #define gj_True  1
@@ -503,6 +502,8 @@ typedef struct PlatformAPI
 #endif
 } PlatformAPI;
 
+#if GJ_USE_GLOBAL_PLATFORM_API
 static PlatformAPI g_platform_api;
+#endif
 
 #endif

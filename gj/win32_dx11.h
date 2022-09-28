@@ -34,7 +34,40 @@ struct Win32DX11
 
 global_variable Win32DX11 g_win32_dx11;
 
-internal void
+static inline void
+D3D11_compile_shader(const void* shader_file_contents,
+                     const size_t shader_file_contents_size,
+                     const char* shader_name,
+                     const D3D_SHADER_MACRO* defines,
+                     const char* entry_point,
+                     const char* target,
+                     ID3DBlob** shader_blob,
+                     ID3DBlob** error_messages)
+{
+    HRESULT hr = D3DCompile(
+        shader_file_contents,
+        shader_file_contents_size,
+        shader_name,
+        defines,
+        NULL,
+        entry_point,
+        target,
+#if GJ_DEBUG
+        D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION |
+#endif
+        D3DCOMPILE_WARNINGS_ARE_ERRORS,
+        0,
+        shader_blob,
+        error_messages
+    );
+    if (*error_messages)
+    {
+        OutputDebugStringA((char*)(*error_messages)->GetBufferPointer());
+    }
+    gj_AssertHR(hr);
+}
+
+static void
 win32_init_directx11_render_views(ID3D11Device* device, IDXGISwapChain* swap_chain,
                                   ID3D11RenderTargetView** frame_buffer_view,
                                   ID3D11DepthStencilView** depth_buffer_view)
@@ -83,7 +116,7 @@ win32_init_directx11_render_views(ID3D11Device* device, IDXGISwapChain* swap_cha
     depth_buffer->Release();
 }
 
-internal void
+static void
 win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
 {
     gj_Assert(config.msaa == 1 || config.msaa == 2 || config.msaa == 4 || config.msaa == 8 || config.msaa == 16);
@@ -262,7 +295,7 @@ win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
     }
 }
 
-internal void
+static void
 win32_d3d11_set_state(u32 viewport_width, u32 viewport_height)
 {
     ID3D11DeviceContext* device_context = g_win32_dx11.device_context;
@@ -275,13 +308,22 @@ win32_d3d11_set_state(u32 viewport_width, u32 viewport_height)
     viewport.MinDepth = 0.0f;
     viewport.MaxDepth = 1.0f;
     device_context->RSSetViewports(1, &viewport);
-
     device_context->RSSetState(g_win32_dx11.rasterizer_state);
+    
     device_context->OMSetDepthStencilState(g_win32_dx11.depth_stencil_state, 0);
     f32 blend_factor[] = {0.0f, 0.0f, 0.0f, 0.0f};
-    device_context->OMSetBlendState(g_win32_dx11.blend_state, NULL, 0xFFFFFFFF);
-            
+    device_context->OMSetBlendState(g_win32_dx11.blend_state, NULL, 0xFFFFFFFF);            
     device_context->OMSetRenderTargets(1, &g_win32_dx11.frame_buffer_view, g_win32_dx11.depth_buffer_view);
+}
+
+static void
+win32_d3d11_resize()
+{
+    if (g_win32_dx11.frame_buffer_view) g_win32_dx11.frame_buffer_view->Release();
+    if (g_win32_dx11.depth_buffer_view) g_win32_dx11.depth_buffer_view->Release();
+    g_win32_dx11.swap_chain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
+    win32_init_directx11_render_views(g_win32_dx11.device, g_win32_dx11.swap_chain,
+                                      &g_win32_dx11.frame_buffer_view, &g_win32_dx11.depth_buffer_view);
 }
 
 #endif

@@ -20,7 +20,7 @@ typedef void (APIENTRY *GLDEBUGPROC)(GLenum source,
                                      const GLchar *message,
                                      const void *userParam);
 
-internal void OPENGL_APIENTRY
+static void OPENGL_APIENTRY
 opengl_error_callback(GLenum source,
                       GLenum type,
                       GLuint id,
@@ -42,7 +42,7 @@ struct Win32OpenGL
     OpenGL api;
 };
 
-internal Win32OpenGL
+static Win32OpenGL
 win32_create_opengl_context(HDC device_ctx)
 {
     Win32OpenGL result = {};

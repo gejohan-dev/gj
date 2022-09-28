@@ -19,6 +19,9 @@
 ///////////////////////////////////////////////////////////////////////////
 #define PI_F32 3.141592f
 #define E_F32  2.7182818284f
+
+#define SQRT_3_F32 1.73205080757f
+
 #define DEG_TO_RAD (PI_F32 / 180.0f)
 #define RAD_TO_DEG (1.0f / DEG_TO_RAD)
 
@@ -110,11 +113,11 @@ inline V2f V2_reflect          (V2f v, V2f n)     { return V2_sub(v, V2_mul(2.0f
 inline f32 V2_get_angle        (V2f v, V2f u)     { return atan2f(V2_det(v, u), V2_dot(v, u)); }
 inline f32 V2_get_angle_x_axis (V2f v)            { V2f a; a.x = 1.0f; a.y = 0.0f; return V2_get_angle(v, a); }
 inline V2f V2_rotate_90        (V2f v)            { gj_SwapVar(f32, v.x, v.y); v.x = -v.x; return v; }
-inline V2f V2_rotate           (V2f v, f32 a)
+inline V2f V2_rotate           (V2f v, f32 a_radians)
 {
     V2f result;
-    result.x = gj_cos(a) * v.x - gj_sin(a) * v.y;
-    result.y = gj_sin(a) * v.x + gj_cos(a) * v.y;
+    result.x = gj_cos(a_radians) * v.x - gj_sin(a_radians) * v.y;
+    result.y = gj_sin(a_radians) * v.x + gj_cos(a_radians) * v.y;
     return result;
 }
 
@@ -258,7 +261,7 @@ bool V3_point_on_triangle(V3f p, V3f t1, V3f t2, V3f t3)
 #define V2_LINE_NO_COLLISION FLT_MAX
 // Note: Comes from
 // https://web.archive.org/web/20060911055655/http://local.wasp.uwa.edu.au/%7Epbourke/geometry/lineline2d/
-internal V2f
+static V2f
 V2_line_line_intersection(V2f line1_p1, V2f line1_p2,
                           V2f line2_p1, V2f line2_p2)
 {
@@ -286,7 +289,7 @@ V2_line_line_intersection(V2f line1_p1, V2f line1_p2,
     return result;
 }
 
-internal b32
+static b32
 V2_line_rectangle_intersection(V2f line_p1, V2f line_p2,
                                V2f bottom_left_corner,
                                V2f bottom_right_corner,
@@ -426,7 +429,7 @@ inline V3f M4x4_mul_V3f(M4x4 m, V3f v)
     return result;
 }
 
-internal inline M4x4
+static inline M4x4
 M4x4_translation_matrix(V3f translation)
 {
     M4x4 result = {
@@ -438,7 +441,7 @@ M4x4_translation_matrix(V3f translation)
     return result;
 }
 
-internal inline V3f
+static inline V3f
 M4x4_get_translation(M4x4 m) { return {m.m[0][3], m.m[1][3], m.m[2][3]}; }
 
 // NOTE: All of these use pass-by-reference (C++ only feature)
@@ -670,6 +673,23 @@ V3f_fps_forward_vector(f32 yaw_radians, f32 pitch_radians)
 
 inline b32
 rectangle_bounds_check(f32 px, f32 py, f32 rx1, f32 rx2, f32 ry1, f32 ry2) { return px >= rx1 && px < rx2 && py >= ry1 && py < ry2; }
+
+V3f V3f_get_mouse_ray(M4x4 inverse_model_view_matrix, M4x4 inverse_projection_matrix,
+                      u32 window_width, u32 window_height,
+                      V2f mouse_pos)
+{
+    V3f result;
+    V2f mouse_ndc;
+    mouse_ndc.x = (2.0f * mouse_pos.x) / window_width - 1.0f;
+    mouse_ndc.y = 1.0f - (2.0f * mouse_pos.y) / window_height;
+    V4f mouse_eye = M4x4_mul(inverse_projection_matrix, V4f{mouse_ndc.x, mouse_ndc.y, 1.0f, 1.0f});
+    mouse_eye.z = 1.0f;
+    mouse_eye.w = 0.0f;
+    mouse_eye = M4x4_mul(inverse_model_view_matrix, mouse_eye);
+    result = {mouse_eye.x, mouse_eye.y, mouse_eye.z};
+    result = V3_normalize(result);
+    return result;
+}
 
 f32 ray_plane_collision(V3f v0, V3f v1, V3f v2,
                         V3f ray_origin, V3f ray_direction)

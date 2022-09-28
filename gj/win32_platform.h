@@ -4,7 +4,7 @@
 #include <gj/gj_base.h> // PlatformAPI
 
 #if defined(GJ_DEBUG)
-internal void
+static void
 win32_assert(bool exp)
 {
     if (!exp)

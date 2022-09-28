@@ -27,7 +27,7 @@ struct GJ_ObjLoader_ParseState
     u32 buffer_contents_size;
 };
 
-internal void
+static void
 gj_obj_loader_skip_whitespace(GJ_ObjLoader_ParseState* parse_state)
 {
     while (gj_IsWhitespace(parse_state->buffer[parse_state->buffer_index]))
@@ -36,13 +36,13 @@ gj_obj_loader_skip_whitespace(GJ_ObjLoader_ParseState* parse_state)
     }
 }
 
-internal void
+static void
 gj_obj_loader_skip_char(GJ_ObjLoader_ParseState* parse_state, char c)
 {
     if (parse_state->buffer[parse_state->buffer_index] == c) parse_state->buffer_index++;
 }
 
-internal bool
+static bool
 gj_obj_loader_check_current_word(GJ_ObjLoader_ParseState* parse_state, const char* str)
 {
     bool result = true;
@@ -66,7 +66,7 @@ gj_obj_loader_check_current_word(GJ_ObjLoader_ParseState* parse_state, const cha
     return result;
 }
 
-internal f32
+static f32
 gj_obj_loader_parse_f32(GJ_ObjLoader_ParseState* parse_state)
 {
     f32 result;
@@ -76,7 +76,7 @@ gj_obj_loader_parse_f32(GJ_ObjLoader_ParseState* parse_state)
     return result;
 }
 
-internal s32
+static s32
 gj_obj_loader_parse_s32(GJ_ObjLoader_ParseState* parse_state)
 {
     s32 result;
@@ -86,7 +86,7 @@ gj_obj_loader_parse_s32(GJ_ObjLoader_ParseState* parse_state)
     return result;
 }
 
-internal void
+static void
 gj_obj_loader_load(const char* obj_filename,
                    V3f* out_positions, V3f* out_normals, V2f* out_uvs, size_t stride, const u32 vertices_max_count, u32* vertex_count,
                    s32* out_indices, const u32 indices_max_count, u32* index_count)

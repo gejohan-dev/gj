@@ -91,7 +91,17 @@ win32_get_last_write_time(const char* file_name)
     return result;
 }
 
-internal void
+static void
+win32_get_cursor_pos(HWND window, f32* mouse_pos_x, f32* mouse_pos_y)
+{
+    POINT mouse_pos;
+    GetCursorPos(&mouse_pos);
+    gj_Assert(ScreenToClient(window, &mouse_pos));
+    *mouse_pos_x = (f32)mouse_pos.x;
+    *mouse_pos_y = (f32)mouse_pos.y;
+}
+
+static void
 win32_set_cursor(b32 show)
 {
     int show_count = ShowCursor(show);
@@ -175,25 +185,32 @@ void win32_load_dll(Win32HotLoadedDLL* dll, char* dll_file_path, char* lock_file
     win32_load_dll(dll);
 }
 
+void* win32_load_function(Win32HotLoadedDLL dll, const char* function_name)
+{
+    void* result = GetProcAddress(dll.hmodule, function_name);
+    gj_Assert(result);
+    return result;
+}
+
 void win32_init_window(HINSTANCE instance, WNDPROC window_proc, const char* window_title)
 {
     WNDCLASSA window_class = {};
-    window_class.style = CS_VREDRAW | CS_HREDRAW;
-    window_class.lpfnWndProc = window_proc;
-    window_class.hInstance = instance;
-    window_class.hCursor = LoadCursor(0, IDC_ARROW);
+    window_class.style         = CS_VREDRAW | CS_HREDRAW;
+    window_class.lpfnWndProc   = window_proc;
+    window_class.hInstance     = instance;
+    window_class.hCursor       = LoadCursor(0, IDC_ARROW);
     window_class.lpszClassName = window_title;
 
     gj_OnlyDebug(BOOL ok = )RegisterClassA(&window_class);
     gj_Assert(ok);
 
     g_win32_app.window = CreateWindowExA(
-        0,
+        WS_EX_APPWINDOW,
         window_class.lpszClassName,
         window_title,
-        WS_VISIBLE | WS_OVERLAPPEDWINDOW,
-        0,
-        0,
+        WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
         0,
@@ -201,7 +218,8 @@ void win32_init_window(HINSTANCE instance, WNDPROC window_proc, const char* wind
         instance,
         0);
     gj_Assert(g_win32_app.window);
-
+    ShowWindow(g_win32_app.window, SW_SHOW);
+    
     g_win32_app.device_context = GetDC(g_win32_app.window);
 }
 
