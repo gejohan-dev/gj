@@ -154,7 +154,6 @@ void* win32_allocate_memory(size_t size)
 #if 1
     void* result = HeapAlloc(GetProcessHeap(),
                              HEAP_ZERO_MEMORY
-                             | HEAP_NO_SERIALIZE
 #if GJ_DEBUG
                              | HEAP_GENERATE_EXCEPTIONS
 #endif
@@ -179,7 +178,7 @@ void win32_deallocate_memory(void* memory)
         // NOTE: https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree
         // If the dwFreeType parameter (third) is MEM_RELEASE, this parameter (second) must be 0 (zero).
         /* Assert(VirtualFree(memory, 0, MEM_RELEASE)); */
-        gj_OnlyDebug(BOOL ok = )HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, memory);
+        gj_OnlyDebug(BOOL ok = )HeapFree(GetProcessHeap(), 0, memory);
         gj_Assert(ok);
 #endif
 

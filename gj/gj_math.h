@@ -53,8 +53,9 @@ inline b32 unknown_bounds_check(f32 x, f32 a, f32 b, f32 delta)
 ///////////////////////////////////////////////////////////////////////////
 // Common Functions
 ///////////////////////////////////////////////////////////////////////////
-inline f32 gj_sqrt(f32 x)        { return sqrtf(x); }
-inline f32 gj_pow (f32 x, f32 n) { return powf(x,n); }
+inline f32 gj_sqrt (f32 x)        { return sqrtf(x); }
+inline f32 gj_pow  (f32 x, f32 n) { return powf(x,n); }
+inline s32 gj_round(f32 x)        { return lroundf(x); }
 
 ///////////////////////////////////////////////////////////////////////////
 // Trigonometric Functions
@@ -93,6 +94,7 @@ V3(f, f32);
         struct { type r;     type g;      type b; type a; };    \
         type xyz[3];                                            \
         V3##name v3;                                            \
+        V2##name v2;                                            \
     } V4##name
 V4(f, f32);
 
@@ -255,6 +257,8 @@ bool V3_point_on_triangle(V3f p, V3f t1, V3f t2, V3f t3)
     return result;
 }
 
+inline V4f V4_mul (f32 c, V4f v0) { V4f v; v.x = (c * v0.x); v.y = (c * v0.y); v.z = (c * v0.z);  v.w = (c * v0.w); return v; }
+
 ///////////////////////////////////////////////////////////////////////////
 // 2D Collision
 ///////////////////////////////////////////////////////////////////////////
@@ -368,6 +372,14 @@ typedef union M4x4
     // 8  9  10 11
     // 12 13 14 15
     f32 a[16];
+
+    struct
+    {
+        f32 _00; f32 _01; f32 _02; f32 _03;
+        f32 _10; f32 _11; f32 _12; f32 _13;
+        f32 _20; f32 _21; f32 _22; f32 _23;
+        f32 _30; f32 _31; f32 _32; f32 _33;
+    };
 } M4x4;
 
 inline M4x4 M4x4_identity()
@@ -632,28 +644,41 @@ M4x4 M4x4_inverse_projection_matrix(M4x4 projection_matrix)
     return result;
 }
 
-/* M4x4 M4x4_orthographic_matrix(f32 left, f32 right, f32 up, f32 down, */
-M4x4 M4x4_orthographic_matrix(f32 aspect_w_over_h, f32 near_plane, f32 far_plane)
+/* M4x4 M4x4_orthographic_matrix(f32 aspect_w_over_h, f32 near_plane, f32 far_plane) */
+/* M4x4 M4x4_orthographic_matrix(f32 left, f32 right, f32 up, f32 down, f32 near_plane, f32 far_plane) */
+M4x4 M4x4_orthographic_matrix(f32 width, f32 height, f32 near_plane, f32 far_plane)
 {
     M4x4 result = M4x4_identity();
+#if 0
     result.m[1][1] = aspect_w_over_h;
     result.m[2][2] = 2.0f / (near_plane - far_plane);
     result.m[2][3] = (near_plane + far_plane) / (near_plane - far_plane);
-#if 0
-    result.a[0] = 2.0f / (right - left);
-    result.a[5] = 2.0f / (up - down);
-    result.a[10] = -2.0f / (far_plane - near_plane);
-    result.a[3]  = -(right + left) / (right - left);
-    result.a[7]  = -(up + down) / (up - down);
-    result.a[11] = -(far_plane + near_plane) / (far_plane - near_plane);
+#elif 1
+    result._00 =  2.0f / width;
+    result._03 = -1.0f;
+    result._11 =  2.0f / height;
+    result._13 = -1.0f;
+    result._22 = -2.0f / (far_plane - near_plane);
+    result._23 = -(far_plane + near_plane) / (far_plane - near_plane);
+#elif 0
+    result._00 = 2.0f / width;
+    result._03 = -1.0f;
+    result._11 = 2.0f / height;
+    result._13 = -1.0f;
+    result._22 = 1.0f / (near_plane - far_plane);
+    result._32 = near_plane / (near_plane - far_plane);
 #endif
     return result;
 }
 
-M4x4 M4x4_inverse_orthographic_matrix(M4x4 orthographic_matrix)
+M4x4 M4x4_inverse_orthographic_matrix(f32 width, f32 height, f32 near_plane, f32 far_plane)
 {
-    M4x4 result = orthographic_matrix;
-    gj_Assert(result.a[0] != orthographic_matrix.a[0]);
+    M4x4 result = M4x4_identity();
+    result._00 = width / 2.0f;
+    result._03 = width / 2.0f;
+    result._11 = height / 2.0f;
+    result._13 = height / 2.0f;
+    result._22 = (far_plane - near_plane) / -2.0f;
     return result;
 }
 
@@ -763,6 +788,42 @@ grid_get_cell_coord(V2f pos, f32 cell_width, f32 cell_height)
     V2f result;
     result.x = (f32)((s32)(pos.x / cell_width)) * cell_width;
     result.y = (f32)((s32)(pos.y / cell_height)) * cell_height;
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////
+// Random Number Generation
+///////////////////////////////////////////////////////////////////////////
+struct RandomSeries
+{
+    u32 a;
+};
+
+/* The state word must be initialized to non-zero */
+inline u32
+gj_math_get_random_u32(RandomSeries* random_series)
+{
+    /* Algorithm "xor" from p. 4 of Marsaglia, "Xorshift RNGs" */
+    u32 result = random_series->a;
+    result ^= result << 13;
+    result ^= result >> 17;
+    result ^= result << 5;
+    return random_series->a = result;
+}
+
+inline u32
+gj_math_get_bounded_random_u32(RandomSeries* random_series, u32 min, u32 max)
+{
+    u32 result = gj_math_get_random_u32(random_series);
+    result %= max - min;
+    result += min;
+    return result;
+}
+
+inline u32
+gj_math_get_bounded_inclusive_random_u32(RandomSeries* random_series, u32 min, u32 max)
+{
+    u32 result = gj_math_get_bounded_random_u32(random_series, min, max + 1);
     return result;
 }
 

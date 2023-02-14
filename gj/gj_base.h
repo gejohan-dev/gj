@@ -351,6 +351,61 @@ void* _push(MemoryArena* arena, size_t size, size_t alignment)
 }
 
 ///////////////////////////////////////////////////////////////////////////
+// Array
+///////////////////////////////////////////////////////////////////////////
+#define gj_DefineArray(Type, Name)                                      \
+    struct Name                                                         \
+    {                                                                   \
+        Type##* data;                                                   \
+        u32   count;                                                    \
+        u32   max_count;                                                \
+        Type##& operator[](int i) { gj_Assert(i < count); return data[i]; } \
+                                                                        \
+        Type remove(int i)                                              \
+        {                                                               \
+            Type result = (*this)[i];                                   \
+            gj_Assert(i < max_count && count > 0);                      \
+            for (s32 j = i; j < count; j++)                             \
+            {                                                           \
+                gj_SwapArray(data, Type, j, j + 1);                     \
+            }                                                           \
+            count--;                                                    \
+            return result;                                              \
+        }                                                               \
+                                                                        \
+        void add(Type element)                                          \
+        {                                                               \
+            gj_Assert(count < max_count);                               \
+            data[count++] = element;                                    \
+        }                                                               \
+                                                                        \
+        Type pop()                                                      \
+        {                                                               \
+            return remove(count - 1);                                   \
+        }                                                               \
+                                                                        \
+        void clear()                                                    \
+        {                                                               \
+            count = 0;                                                  \
+        }                                                               \
+                                                                        \
+        void fill(Type value)                                           \
+        {                                                               \
+            for (u32 i = 0; i < max_count; i++) { data[i] = value; }    \
+            count = max_count;                                          \
+        }                                                               \
+    };                                                                  \
+                                                                        \
+    void Name##_init(Name##* array, MemoryArena* memory_arena, u32 max_count) \
+    {                                                                   \
+        array->data = (Type##*)push_size(memory_arena, max_count * sizeof(Type)); \
+        array->count = 0;                                               \
+        array->max_count = max_count;                                   \
+    }                                                           
+    
+gj_DefineArray(u32, U32Array);
+
+///////////////////////////////////////////////////////////////////////////
 // OS API
 ///////////////////////////////////////////////////////////////////////////
 typedef enum PlatformOpenFileModeFlags

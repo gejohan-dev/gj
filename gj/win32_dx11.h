@@ -312,7 +312,7 @@ win32_d3d11_set_state(u32 viewport_width, u32 viewport_height)
     
     device_context->OMSetDepthStencilState(g_win32_dx11.depth_stencil_state, 0);
     f32 blend_factor[] = {0.0f, 0.0f, 0.0f, 0.0f};
-    device_context->OMSetBlendState(g_win32_dx11.blend_state, NULL, 0xFFFFFFFF);            
+    device_context->OMSetBlendState(g_win32_dx11.blend_state, NULL, 0xFFFFFFFF);
     device_context->OMSetRenderTargets(1, &g_win32_dx11.frame_buffer_view, g_win32_dx11.depth_buffer_view);
 }
 
