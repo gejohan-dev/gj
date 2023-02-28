@@ -46,7 +46,7 @@ PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
         gj_OnlyDebug(BOOL ok = )GetFileAttributesExA(file_name, GetFileExInfoStandard, &file_attribute_data);
         win32_assert(ok);
         // TODO: If files ever get this big I need to implement handling when reading data by DWORD in ReadFile
-        gj_Assert(file_attribute_data.nFileSizeHigh == 0);
+        gj_AssertDebug(file_attribute_data.nFileSizeHigh == 0);
         result.file_size = file_attribute_data.nFileSizeLow;
     }
     else if (mode_flags & PlatformOpenFileModeFlags_Write)
@@ -70,7 +70,7 @@ PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
     result.handle = (void*)CreateFileA(result.full_file_name, handle_permissions,
                                        FILE_SHARE_READ, 0, handle_creation, FILE_ATTRIBUTE_NORMAL, 0);
     // TODO: handle invalid handle
-    gj_Assert(result.handle != INVALID_HANDLE_VALUE);
+    gj_AssertDebug(result.handle != INVALID_HANDLE_VALUE);
     
     return result;
 }
@@ -86,8 +86,8 @@ void win32_read_data_from_file_handle(PlatformFileHandle file_handle, size_t off
 
     DWORD bytes_read;
     gj_OnlyDebug(BOOL ok = )ReadFile(handle, dst, gj_safe_cast_u64_to_u32(size), &bytes_read, &overlapped);
-    gj_Assert(ok);
-    gj_Assert(bytes_read == size);
+    gj_AssertDebug(ok);
+    gj_AssertDebug(bytes_read == size);
 }
 
 void win32_write_data_to_file_handle(PlatformFileHandle file_handle, size_t offset, size_t size, void* src)
@@ -102,14 +102,14 @@ void win32_write_data_to_file_handle(PlatformFileHandle file_handle, size_t offs
 
     DWORD bytes_written;
     gj_OnlyDebug(BOOL ok = )WriteFile(handle, src, gj_safe_cast_u64_to_u32(size), &bytes_written, &overlapped);
-    gj_Assert(ok);
-    gj_Assert(bytes_written == size);
+    gj_AssertDebug(ok);
+    gj_AssertDebug(bytes_written == size);
 }
 
 void win32_close_file_handle(PlatformFileHandle file_handle)
 {
     gj_OnlyDebug(BOOL ok = )CloseHandle(file_handle.handle);
-    gj_Assert(ok);
+    gj_AssertDebug(ok);
     g_platform_api.deallocate_memory(file_handle.full_file_name);
 }
 
@@ -179,7 +179,7 @@ void win32_deallocate_memory(void* memory)
         // If the dwFreeType parameter (third) is MEM_RELEASE, this parameter (second) must be 0 (zero).
         /* Assert(VirtualFree(memory, 0, MEM_RELEASE)); */
         gj_OnlyDebug(BOOL ok = )HeapFree(GetProcessHeap(), 0, memory);
-        gj_Assert(ok);
+        gj_AssertDebug(ok);
 #endif
 
 #if 0
@@ -233,7 +233,7 @@ ThreadStatus win32_check_thread_status(PlatformThreadContext thread_context)
         DWORD exit_code;
         HANDLE handle = ((Win32Thread*)thread_context.platform)->handle;
         gj_OnlyDebug(BOOL ok = )GetExitCodeThread(handle, &exit_code);
-        gj_Assert(ok);
+        gj_AssertDebug(ok);
         if (exit_code == 0) result = ThreadStatus_Done;
     }
     return result;
@@ -258,7 +258,7 @@ HANDLE win32_get_stdout_handle()
                                 GENERIC_READ | GENERIC_WRITE,
                                 FILE_SHARE_READ| FILE_SHARE_WRITE,
                                 NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    gj_Assert(result != INVALID_HANDLE_VALUE);
+    gj_AssertDebug(result != INVALID_HANDLE_VALUE);
     return result;
 }
 
@@ -337,7 +337,7 @@ void win32_submit_sound_buffer(SoundBuffer sound_buffer)
 #else
     gj_OnlyDebug(HRESULT hr = )IXAudio2SourceVoice_SubmitSourceBuffer(g_win32_xaudio2.source_voice, xaudio2_buffer, NULL);
 #endif
-    gj_Assert(SUCCEEDED(hr));
+    gj_AssertDebug(SUCCEEDED(hr));
 }
 
 u32 win32_get_remaining_samples(SoundBuffer sound_buffer)

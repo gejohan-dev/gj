@@ -185,7 +185,7 @@ inline V3f V3_div        (f32 x, V3f v)               { v.x  = (x / v.x); v.y = 
 inline V3f V3_normalize  (V3f v)
 {
     f32 l = V3_length(v);
-    gj_Assert(l != 0.0f);
+    gj_AssertDebug(l != 0.0f);
     v.x = (v.x / l); v.y = (v.y / l); v.z = (v.z / l);
     return v;
 }
@@ -294,6 +294,7 @@ V2_line_line_intersection(V2f line1_p1, V2f line1_p2,
 }
 
 static b32
+#pragma warning(suppress: 4505)
 V2_line_rectangle_intersection(V2f line_p1, V2f line_p2,
                                V2f bottom_left_corner,
                                V2f bottom_right_corner,
@@ -607,7 +608,7 @@ M4x4 M4x4_fixed_forward_matrix(V3f camera_pos)
 M4x4 M4x4_inverse_fixed_forward_matrix(M4x4 fixed_forward_matrix, V3f camera_pos)
 {
     M4x4 result = fixed_forward_matrix;
-    gj_Assert(result.a[0] != fixed_forward_matrix.a[0]);
+    gj_AssertDebug(result.a[0] != fixed_forward_matrix.a[0]);
     result.m[0][3] =  camera_pos.x;
     result.m[1][3] =  camera_pos.y;
     result.m[2][3] = -camera_pos.z;

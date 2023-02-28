@@ -9,6 +9,15 @@
 
 #define STB_SPRINTF_IMPLEMENTATION
 #include <libs/stb/stb_sprintf.h> // string format
+int gj_sprintf(char* buffer, char* format, ...)
+{
+    int result;
+    va_list args;
+    va_start(args, format);
+    result = stbsp_vsprintf(buffer, format, args);
+    va_end(args);
+    return result;
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // Types
@@ -62,16 +71,24 @@ typedef u8 one_byte;
     } while(0)
 
 #else // !defined(GJ_DEBUG)
-#define gj_Assert(Exp)
+#define gj_Assert(Exp) Exp
 #endif
 
 #else // !defined(Assert)
 #define gj_Assert(Exp) Assert(Exp)
 #endif
 
+#if defined(GJ_DEBUG)
+#define gj_OnlyDebug(Exp) Exp
+#else
+#define gj_OnlyDebug(Exp)
+#endif
+
+#define gj_AssertDebug(Exp) gj_OnlyDebug(gj_Assert(Exp))
+
 #define BUFFER_SIZE 512
 
-#define InvalidCodePath gj_Assert(!"InvalidCodePath")
+#define InvalidCodePath gj_OnlyDebug(gj_Assert(!"InvalidCodePath"))
 #define InvalidDefaultCase default: {InvalidCodePath;} break
 
 #define gj_BitmaskU32 (0xFFFFFFFF)
@@ -90,15 +107,15 @@ typedef void _dummy_f();
 
 inline u32
 gj_safe_cast_u64_to_u32(u64 value)
-{ gj_Assert(value <= gj_BitmaskU32); return (u32)(value & gj_BitmaskU32); }
+{ gj_AssertDebug(value <= gj_BitmaskU32); return (u32)(value & gj_BitmaskU32); }
 
 inline u32
 gj_safe_cast_s32_to_u32(s32 value)
-{ gj_Assert(value >= 0); return (u32)value; }
+{ gj_AssertDebug(value >= 0); return (u32)value; }
 
 inline u32*
 gj_safe_cast_s32_to_u32(s32* value)
-{ gj_Assert(value >= 0); return (u32*)value; }
+{ gj_AssertDebug(value >= 0); return (u32*)value; }
 
 #define gj_IsCharacter(c) ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
 #define gj_IsDigit(c) (c >= '0' && c <= '9')
@@ -121,12 +138,6 @@ gj_safe_cast_s32_to_u32(s32* value)
 #define gj_UnusedParam(Type, Param) Type
 #else
 #define gj_UnusedParam(Type, Param) Type Param
-#endif
-
-#if defined(GJ_DEBUG)
-#define gj_OnlyDebug(Exp) Exp
-#else
-#define gj_OnlyDebug(Exp)
 #endif
 
 #define gj_MemberSize(Type, Member) (sizeof(((Type*)0)->Member))
@@ -156,7 +167,8 @@ inline b32 gj_strings_equal(const char* s1, const char* s2, s32 length)
 }
 
 inline void gj_string_copy(char* dst, const char* src) { while (*src) { *dst++ = *src++; } }
-                           
+
+#pragma warning(suppress: 4505)
 static s32 gj_get_s32_length(s32 number)
 {
     s32 result = 1;
@@ -169,6 +181,7 @@ static s32 gj_get_s32_length(s32 number)
     return result;
 }
 
+#pragma warning(suppress: 4505)
 static void build_binary_string(u32 number, char* buffer, u32 padding)
 {
     if (number == 0)
@@ -201,6 +214,7 @@ typedef struct GJParseNumber
     s32 length;
 } GJParseNumber;
 
+#pragma warning(suppress: 4505)
 static GJParseNumber gj_parse_number(char* s)
 {
     GJParseNumber result;
@@ -226,6 +240,7 @@ static GJParseNumber gj_parse_number(char* s)
     return result;
 }
 
+#pragma warning(suppress: 4505)
 static s32 gj_parse_word(const char* s, char* dst, int dst_size)
 {
     s32 result = 0;
@@ -263,6 +278,7 @@ static s32 gj_parse_word(const char* s, char* dst, int dst_size)
 #pragma optimize("", off)
 #endif // #if defined(_MSC_VER)
 
+#pragma warning(suppress: 4505)
 static void gj_UnoptimizedLine() { }
 
 #if defined(_MSC_VER)
@@ -340,7 +356,7 @@ void* _push(MemoryArena* arena, size_t size, size_t alignment)
     }
     size += alignment_offset;
     
-    gj_Assert(arena->used + size <= arena->size);
+    gj_AssertDebug(arena->used + size <= arena->size);
     arena->used += size;
 
     void* result = (void*)(result_pointer + alignment_offset);
@@ -359,13 +375,13 @@ void* _push(MemoryArena* arena, size_t size, size_t alignment)
         Type##* data;                                                   \
         u32   count;                                                    \
         u32   max_count;                                                \
-        Type##& operator[](int i) { gj_Assert(i < count); return data[i]; } \
+        Type##& operator[](int i) { gj_AssertDebug((u32)i < count); return data[i]; } \
                                                                         \
-        Type remove(int i)                                              \
+        Type remove(u32 i)                                              \
         {                                                               \
             Type result = (*this)[i];                                   \
             gj_Assert(i < max_count && count > 0);                      \
-            for (s32 j = i; j < count; j++)                             \
+            for (u32 j = i; j < count; j++)                             \
             {                                                           \
                 gj_SwapArray(data, Type, j, j + 1);                     \
             }                                                           \
@@ -373,9 +389,15 @@ void* _push(MemoryArena* arena, size_t size, size_t alignment)
             return result;                                              \
         }                                                               \
                                                                         \
+        Type##* add_new()                                               \
+        {                                                               \
+            gj_AssertDebug(count < max_count);                          \
+            return &data[count++];                                      \
+        }                                                               \
+                                                                        \
         void add(Type element)                                          \
         {                                                               \
-            gj_Assert(count < max_count);                               \
+            gj_AssertDebug(count < max_count);                          \
             data[count++] = element;                                    \
         }                                                               \
                                                                         \
@@ -404,7 +426,7 @@ void* _push(MemoryArena* arena, size_t size, size_t alignment)
     }                                                           
     
 gj_DefineArray(u32, U32Array);
-
+gj_DefineArray(s32, S32Array);
 ///////////////////////////////////////////////////////////////////////////
 // OS API
 ///////////////////////////////////////////////////////////////////////////

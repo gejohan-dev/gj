@@ -125,7 +125,7 @@ void win32_build_exe_file_path(char* output_path, const char* file_name)
 {
     char exe_base_path[BUFFER_SIZE];
     size_t exe_base_path_length = GetModuleFileNameA(NULL, exe_base_path, gj_ArrayCount(exe_base_path));
-    gj_Assert(exe_base_path_length < gj_ArrayCount(exe_base_path));
+    gj_AssertDebug(exe_base_path_length < gj_ArrayCount(exe_base_path));
     // TODO: Implement error
     gj_Assert(WIN32_EXE_FILE_NAME);
     exe_base_path_length -= strlen(WIN32_EXE_FILE_NAME);
@@ -170,7 +170,7 @@ void win32_load_dll(Win32HotLoadedDLL* dll)
         dll->tmp_dll_number++;
         win32_build_exe_file_path(tmp_dll_path, unique_tmp_file_name);
         gj_OnlyDebug(BOOL ok = )CopyFileA(dll->dll_file_path, tmp_dll_path, FALSE);
-        gj_Assert(ok);
+        gj_AssertDebug(ok);
         
         dll->last_write_time = win32_get_last_write_time(dll->dll_file_path);
         dll->hmodule = LoadLibraryA(tmp_dll_path);
@@ -202,7 +202,7 @@ void win32_init_window(HINSTANCE instance, WNDPROC window_proc, const char* wind
     window_class.lpszClassName = window_title;
 
     gj_OnlyDebug(BOOL ok = )RegisterClassA(&window_class);
-    gj_Assert(ok);
+    gj_AssertDebug(ok);
 
     g_win32_app.window = CreateWindowExA(
         WS_EX_APPWINDOW,

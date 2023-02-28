@@ -148,7 +148,7 @@ win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
             &actual_level,               // Returns feature level of device created.
             &g_win32_dx11.device_context // Returns the device immediate context.
         );
-        gj_Assert(SUCCEEDED(hr));
+        gj_AssertDebug(SUCCEEDED(hr));
     }
 
 #if GJ_DEBUG
@@ -205,7 +205,7 @@ win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
             &g_win32_dx11.swap_chain
         );
         factory->Release();
-        gj_Assert(SUCCEEDED(hr));
+        gj_AssertDebug(SUCCEEDED(hr));
     }
     
     // TODO: https://docs.microsoft.com/en-us/windows/win32/direct3dgetstarted/work-with-dxgi
@@ -230,7 +230,7 @@ win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
         rasterizer_desc.MultisampleEnable     = FALSE;
         rasterizer_desc.AntialiasedLineEnable = FALSE;
         gj_OnlyDebug(HRESULT hr = )g_win32_dx11.device->CreateRasterizerState(&rasterizer_desc, &g_win32_dx11.rasterizer_state);
-        gj_Assert(SUCCEEDED(hr));
+        gj_AssertDebug(SUCCEEDED(hr));
     }
 
     // ID3D11DepthStencilState
@@ -250,7 +250,7 @@ win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
         depth_stencil_desc.FrontFace        = depth_stencil_op_desc;
         depth_stencil_desc.BackFace         = depth_stencil_op_desc;
         gj_OnlyDebug(HRESULT hr = )g_win32_dx11.device->CreateDepthStencilState(&depth_stencil_desc, &g_win32_dx11.depth_stencil_state);
-        gj_Assert(SUCCEEDED(hr));
+        gj_AssertDebug(SUCCEEDED(hr));
     }
 
 #if 1
