@@ -30,7 +30,7 @@ win32_assert(bool exp)
 ///////////////////////////////////////////////////////////////////////////
 // OS API
 ///////////////////////////////////////////////////////////////////////////
-PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
+PlatformFileHandle win32_get_file_handle(PlatformAPI* platform_api, const char* file_name, u8 mode_flags)
 {
     PlatformFileHandle result;
     gj__ZeroStruct(result);
@@ -52,6 +52,7 @@ PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
     else if (mode_flags & PlatformOpenFileModeFlags_Write)
     {
         handle_permissions |= GENERIC_WRITE;
+        handle_permissions |= FILE_APPEND_DATA;
         // TODO: OPEN_ALWAYS - create file if not exists, should there be an option to
         //       1) CREATE_NEW    - not overwrite
         //       2) CREATE_ALWAYS - always overwrite
@@ -62,7 +63,7 @@ PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
 
     char buffer[BUFFER_SIZE];
     DWORD file_name_size = GetFullPathNameA(file_name, BUFFER_SIZE, buffer, NULL);
-    result.full_file_name = (char*)g_platform_api.allocate_memory(file_name_size+1);
+    result.full_file_name = (char*)platform_api->allocate_memory(file_name_size+1);
     memcpy(result.full_file_name, buffer, file_name_size+1);
 
     // TODO: Add FILE_FLAG_SEQUENTIAL_SCAN to dwFlagsAndAttributes since most of the time
@@ -90,7 +91,7 @@ void win32_read_data_from_file_handle(PlatformFileHandle file_handle, size_t off
     gj_AssertDebug(bytes_read == size);
 }
 
-void win32_write_data_to_file_handle(PlatformFileHandle file_handle, size_t offset, size_t size, void* src)
+void win32_write_data_to_file_handle(PlatformAPI* platform_api, PlatformFileHandle file_handle, size_t offset, size_t size, void* src)
 {
     HANDLE handle = (HANDLE)file_handle.handle;
 
@@ -102,32 +103,36 @@ void win32_write_data_to_file_handle(PlatformFileHandle file_handle, size_t offs
 
     DWORD bytes_written;
     gj_OnlyDebug(BOOL ok = )WriteFile(handle, src, gj_safe_cast_u64_to_u32(size), &bytes_written, &overlapped);
+    int x = GetLastError();
     gj_AssertDebug(ok);
     gj_AssertDebug(bytes_written == size);
 }
 
-void win32_close_file_handle(PlatformFileHandle file_handle)
+void win32_close_file_handle(PlatformAPI* platform_api, PlatformFileHandle file_handle)
 {
     gj_OnlyDebug(BOOL ok = )CloseHandle(file_handle.handle);
     gj_AssertDebug(ok);
-    g_platform_api.deallocate_memory(file_handle.full_file_name);
+    platform_api->deallocate_memory(file_handle.full_file_name);
 }
 
-PlatformFileListing* win32_list_files(MemoryArena* memory_arena, const char* file_name_pattern)
+PlatformFileListing* win32_list_files(void* memory, size_t memory_max_size, const char* file_name_pattern)
 {
     PlatformFileListing* result = 0;
 
+    MemoryArena memory_arena;
+    initialize_arena(&memory_arena, memory_max_size, (u8*)memory);
+    
     WIN32_FIND_DATAA find_data;
     HANDLE find_handle = FindFirstFileA(file_name_pattern, &find_data);
     if (find_handle != INVALID_HANDLE_VALUE)
     {
-        result = push_struct(memory_arena, PlatformFileListing);
+        result = push_struct(&memory_arena, PlatformFileListing);
     }
     
     PlatformFileListing* current = result;
     while (find_handle != INVALID_HANDLE_VALUE)
     {
-        current->file_name = (char*)push_array(memory_arena, char, MAX_PATH);
+        current->file_name = (char*)push_array(&memory_arena, char, MAX_PATH);
         memcpy(current->file_name, find_data.cFileName, MAX_PATH);
 
         if (!FindNextFileA(find_handle, &find_data))
@@ -136,7 +141,7 @@ PlatformFileListing* win32_list_files(MemoryArena* memory_arena, const char* fil
         }
         else
         {
-            current->next = push_struct(memory_arena, PlatformFileListing);
+            current->next = push_struct(&memory_arena, PlatformFileListing);
             current = current->next;
         }
     }
@@ -201,16 +206,16 @@ typedef struct Win32Thread
     HANDLE handle;
 } Win32Thread;
 
-void win32_new_thread(PlatformThreadContext* thread_context)
+void win32_new_thread(PlatformAPI* platform_api, PlatformThreadContext* thread_context)
 {
     DWORD id;
     HANDLE thread_handle = CreateThread(NULL, 0, ThreadProc, thread_context, 0, &id);
-    thread_context->platform = g_platform_api.allocate_memory(sizeof(Win32Thread));
+    thread_context->platform = platform_api->allocate_memory(sizeof(Win32Thread));
     ((Win32Thread*)thread_context->platform)->id     = id;
     ((Win32Thread*)thread_context->platform)->handle = thread_handle;
 }
 
-b32 win32_wait_for_threads(PlatformThreadContext* threads, u32 thread_count)
+b32 win32_wait_for_threads(PlatformAPI* platform_api, PlatformThreadContext* threads, u32 thread_count)
 {
     for (u32 thread_index = 0;
          thread_index < thread_count;
@@ -218,7 +223,7 @@ b32 win32_wait_for_threads(PlatformThreadContext* threads, u32 thread_count)
     {
         HANDLE thread_handle = ((Win32Thread*)threads[thread_index].platform)->handle;
         WaitForSingleObjectEx(thread_handle, INFINITE, TRUE);
-        g_platform_api.deallocate_memory(threads[thread_index].platform);
+        platform_api->deallocate_memory(threads[thread_index].platform);
         CloseHandle(thread_handle);
     }
     
@@ -304,16 +309,16 @@ u32 win32_queued_sound_buffers()
     return result;
 }
 
-SoundBuffer win32_create_sound_buffer(uint32_t sample_count)
+SoundBuffer win32_create_sound_buffer(PlatformAPI* platform_api, uint32_t sample_count)
 {
     SoundBuffer result;
     
     size_t buffer_size = (sizeof(int16_t) * sample_count * g_win32_xaudio2.wave_format_ext.nChannels);
-    result.buffer = (int16_t*)g_platform_api.allocate_memory(buffer_size);
+    result.buffer = (int16_t*)platform_api->allocate_memory(buffer_size);
     result.buffer_size = buffer_size;
     result.count  = sample_count;
 
-    result.platform = g_platform_api.allocate_memory(sizeof(XAUDIO2_BUFFER));
+    result.platform = platform_api->allocate_memory(sizeof(XAUDIO2_BUFFER));
     XAUDIO2_BUFFER* xaudio2_buffer = (XAUDIO2_BUFFER*)result.platform;
     xaudio2_buffer->Flags      = 0;
     // TODO: Ensure safe assignment
@@ -356,35 +361,35 @@ u32 win32_get_remaining_samples(SoundBuffer sound_buffer)
 ///////////////////////////////////////////////////////////////////////////
 // Init
 ///////////////////////////////////////////////////////////////////////////
-void win32_init_platform_api(size_t memory_size)
+void win32_init_platform_api(PlatformAPI* platform_api, size_t memory_size)
 {
-    g_platform_api.get_file_handle            = win32_get_file_handle;
-    g_platform_api.read_data_from_file_handle = win32_read_data_from_file_handle;
-    g_platform_api.write_data_to_file_handle  = win32_write_data_to_file_handle;
-    g_platform_api.close_file_handle          = win32_close_file_handle;
-    g_platform_api.list_files                 = win32_list_files;
-    g_platform_api.allocate_memory            = win32_allocate_memory;
-    g_platform_api.deallocate_memory          = win32_deallocate_memory;
-    g_platform_api.new_thread                 = win32_new_thread;
-    g_platform_api.wait_for_threads           = win32_wait_for_threads;
-    g_platform_api.check_thread_status        = win32_check_thread_status;
-    g_platform_api.begin_ticket_mutex         = win32_begin_ticket_mutex;
-    g_platform_api.end_ticket_mutex           = win32_end_ticket_mutex;
+    platform_api->get_file_handle            = win32_get_file_handle;
+    platform_api->read_data_from_file_handle = win32_read_data_from_file_handle;
+    platform_api->write_data_to_file_handle  = win32_write_data_to_file_handle;
+    platform_api->close_file_handle          = win32_close_file_handle;
+    platform_api->list_files                 = win32_list_files;
+    platform_api->allocate_memory            = win32_allocate_memory;
+    platform_api->deallocate_memory          = win32_deallocate_memory;
+    platform_api->new_thread                 = win32_new_thread;
+    platform_api->wait_for_threads           = win32_wait_for_threads;
+    platform_api->check_thread_status        = win32_check_thread_status;
+    platform_api->begin_ticket_mutex         = win32_begin_ticket_mutex;
+    platform_api->end_ticket_mutex           = win32_end_ticket_mutex;
 #if GJ_DEBUG
-    g_platform_api.debug_print                = win32_debug_print;
+    platform_api->debug_print                = win32_debug_print;
 #endif
-    gj_VerifyPlatformAPI(g_platform_api);
+    gj_VerifyPlatformAPI((*platform_api));
     
-    g_platform_api.get_max_queued_sound_buffers = win32_get_max_queued_sound_buffers;
-    g_platform_api.queued_sound_buffers         = win32_queued_sound_buffers;
-    g_platform_api.create_sound_buffer          = win32_create_sound_buffer;
-    g_platform_api.submit_sound_buffer          = win32_submit_sound_buffer;
-    g_platform_api.get_remaining_samples        = win32_get_remaining_samples;
+    platform_api->get_max_queued_sound_buffers = win32_get_max_queued_sound_buffers;
+    platform_api->queued_sound_buffers         = win32_queued_sound_buffers;
+    platform_api->create_sound_buffer          = win32_create_sound_buffer;
+    platform_api->submit_sound_buffer          = win32_submit_sound_buffer;
+    platform_api->get_remaining_samples        = win32_get_remaining_samples;
 
     if (memory_size > 0)
     {
-        g_platform_api.memory      = g_platform_api.allocate_memory(memory_size);
-        g_platform_api.memory_size = memory_size;
+        platform_api->memory      = platform_api->allocate_memory(memory_size);
+        platform_api->memory_size = memory_size;
     }
 }
 

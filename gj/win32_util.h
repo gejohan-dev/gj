@@ -12,13 +12,13 @@
 #endif
 
 // TODO: move into Win32App
-global_variable WINDOWPLACEMENT g_window_pos = {sizeof(g_window_pos)};
-struct Win32App
-{
-    HWND window;
-    HDC device_context;
-};
-global_variable Win32App g_win32_app;
+/* global_variable WINDOWPLACEMENT g_window_pos = {sizeof(g_window_pos)}; */
+/* struct Win32App */
+/* { */
+/*     HWND window; */
+/*     HDC device_context; */
+/* }; */
+/* global_variable Win32App g_win32_app; */
 
 V2u win32_get_window_dimension(HWND window)
 {
@@ -50,13 +50,13 @@ win32_get_time_difference(LARGE_INTEGER start, LARGE_INTEGER end)
     return result;
 }
 
-void win32_toggle_fullscreen(HWND window)
+void win32_toggle_fullscreen(HWND window, WINDOWPLACEMENT* window_pos)
 {
     DWORD style = GetWindowLong(window, GWL_STYLE);
     if(style & WS_OVERLAPPEDWINDOW)
     {
         MONITORINFO monitor_info = {sizeof(monitor_info)};
-        if(GetWindowPlacement(window, &g_window_pos) &&
+        if(GetWindowPlacement(window, window_pos) &&
            GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY), &monitor_info))
         {
             SetWindowLong(window, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
@@ -71,7 +71,7 @@ void win32_toggle_fullscreen(HWND window)
     {
         
         SetWindowLong(window, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-        SetWindowPlacement(window, &g_window_pos);
+        SetWindowPlacement(window, window_pos);
         SetWindowPos(window, 0, 0, 0, 0, 0,
                      SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
                      SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
@@ -87,7 +87,11 @@ win32_get_last_write_time(const char* file_name)
     {
         result = file_attribute_data.ftLastWriteTime;
     }
-    else InvalidCodePath;
+    else
+    {
+        DWORD error = GetLastError();
+        InvalidCodePath;
+    }
     return result;
 }
 
@@ -192,7 +196,10 @@ void* win32_load_function(Win32HotLoadedDLL dll, const char* function_name)
     return result;
 }
 
-void win32_init_window(HINSTANCE instance, WNDPROC window_proc, const char* window_title)
+void win32_init_window(HINSTANCE instance,
+                       WNDPROC window_proc,
+                       const char* window_title,
+                       HWND* window)
 {
     WNDCLASSA window_class = {};
     window_class.style         = CS_VREDRAW | CS_HREDRAW;
@@ -204,7 +211,7 @@ void win32_init_window(HINSTANCE instance, WNDPROC window_proc, const char* wind
     gj_OnlyDebug(BOOL ok = )RegisterClassA(&window_class);
     gj_AssertDebug(ok);
 
-    g_win32_app.window = CreateWindowExA(
+    *window = CreateWindowExA(
         WS_EX_APPWINDOW,
         window_class.lpszClassName,
         window_title,
@@ -217,10 +224,8 @@ void win32_init_window(HINSTANCE instance, WNDPROC window_proc, const char* wind
         0,
         instance,
         0);
-    gj_Assert(g_win32_app.window);
-    ShowWindow(g_win32_app.window, SW_SHOW);
-    
-    g_win32_app.device_context = GetDC(g_win32_app.window);
+    gj_Assert(*window);
+    ShowWindow(*window, SW_SHOW);
 }
 
 #endif

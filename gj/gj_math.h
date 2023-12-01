@@ -56,6 +56,7 @@ inline b32 unknown_bounds_check(f32 x, f32 a, f32 b, f32 delta)
 inline f32 gj_sqrt (f32 x)        { return sqrtf(x); }
 inline f32 gj_pow  (f32 x, f32 n) { return powf(x,n); }
 inline s32 gj_round(f32 x)        { return lroundf(x); }
+inline s32 gj_floor(f32 x)        { return floorf(x); }
 
 ///////////////////////////////////////////////////////////////////////////
 // Trigonometric Functions
@@ -342,20 +343,30 @@ V2_rectangle_contains_point(V2f rectangle_start, V2f rectangle_end, V2f point)
     f32 r_min_y = gj_Min(rectangle_start.y, rectangle_end.y);
     f32 r_max_y = gj_Max(rectangle_start.y, rectangle_end.y);
     
-    return (r_min_x <= point.x &&
-            r_max_x >  point.x &&
-            r_min_y <= point.y &&
-            r_max_y >  point.y);
+    return (gj_float_leq(r_min_x, point.x) &&
+            gj_float_geq(r_max_x, point.x) &&
+            gj_float_leq(r_min_y, point.y) &&
+            gj_float_geq(r_max_y, point.y));
 }
 
 inline b32
-V2_rectangle_contains_rectangle(V2f rectangle_start, V2f rectangle_end,
-                                V2f p1, V2f p2, V2f p3, V2f p4)
+V2_rectangle_contains_rectangle(V2f r1_min_pos, V2f r1_max_pos,
+                                V2f r2_min_pos, V2f r2_max_pos)
 {
-    return (V2_rectangle_contains_point(rectangle_start, rectangle_end, p1) &&
-            V2_rectangle_contains_point(rectangle_start, rectangle_end, p2) &&
-            V2_rectangle_contains_point(rectangle_start, rectangle_end, p3) &&
-            V2_rectangle_contains_point(rectangle_start, rectangle_end, p4));
+    V2f r1_min_max_pos = {r1_min_pos.x, r1_max_pos.y};
+    V2f r1_max_min_pos = {r1_max_pos.x, r1_min_pos.y};
+
+    V2f r2_min_max_pos = {r2_min_pos.x, r2_max_pos.y};
+    V2f r2_max_min_pos = {r2_max_pos.x, r2_min_pos.y};
+    
+    return (V2_rectangle_contains_point(r2_min_pos, r2_max_pos, r1_min_pos) ||
+            V2_rectangle_contains_point(r2_min_pos, r2_max_pos, r1_max_pos) ||
+            V2_rectangle_contains_point(r2_min_pos, r2_max_pos, r1_min_max_pos) ||
+            V2_rectangle_contains_point(r2_min_pos, r2_max_pos, r1_max_min_pos) ||
+            V2_rectangle_contains_point(r1_min_pos, r1_max_pos, r2_min_pos) ||
+            V2_rectangle_contains_point(r1_min_pos, r1_max_pos, r2_max_pos) ||
+            V2_rectangle_contains_point(r1_min_pos, r1_max_pos, r2_min_max_pos) ||
+            V2_rectangle_contains_point(r1_min_pos, r1_max_pos, r2_max_min_pos));
 }
 ///////////////////////////////////////////////////////////////////////////
 // Matrices
@@ -392,27 +403,29 @@ inline M4x4 M4x4_mul(M4x4 m, M4x4 n)
 inline M4x4 M4x4_mul_M4x4(M4x4 m, M4x4 n)
 #endif
 {
-    m.m[0][0] = m.a[0]*n.a[0] + m.a[1]*n.a[4] + m.a[2]*n.a[8]  + m.a[3]*n.a[12];
-    m.m[0][1] = m.a[0]*n.a[1] + m.a[1]*n.a[5] + m.a[2]*n.a[9]  + m.a[3]*n.a[13];
-    m.m[0][2] = m.a[0]*n.a[2] + m.a[1]*n.a[6] + m.a[2]*n.a[10] + m.a[3]*n.a[14];
-    m.m[0][3] = m.a[0]*n.a[3] + m.a[1]*n.a[7] + m.a[2]*n.a[11] + m.a[3]*n.a[15];
+    M4x4 result = {};
+    
+    result.m[0][0] = m.a[0]*n.a[0] + m.a[1]*n.a[4] + m.a[2]*n.a[8]  + m.a[3]*n.a[12];
+    result.m[0][1] = m.a[0]*n.a[1] + m.a[1]*n.a[5] + m.a[2]*n.a[9]  + m.a[3]*n.a[13];
+    result.m[0][2] = m.a[0]*n.a[2] + m.a[1]*n.a[6] + m.a[2]*n.a[10] + m.a[3]*n.a[14];
+    result.m[0][3] = m.a[0]*n.a[3] + m.a[1]*n.a[7] + m.a[2]*n.a[11] + m.a[3]*n.a[15];
 
-    m.m[1][0] = m.a[4]*n.a[0] + m.a[5]*n.a[4] + m.a[6]*n.a[8]  + m.a[7]*n.a[12];
-    m.m[1][1] = m.a[4]*n.a[1] + m.a[5]*n.a[5] + m.a[6]*n.a[9]  + m.a[7]*n.a[13];
-    m.m[1][2] = m.a[4]*n.a[2] + m.a[5]*n.a[6] + m.a[6]*n.a[10] + m.a[7]*n.a[14];
-    m.m[1][3] = m.a[4]*n.a[3] + m.a[5]*n.a[7] + m.a[6]*n.a[11] + m.a[7]*n.a[15];
+    result.m[1][0] = m.a[4]*n.a[0] + m.a[5]*n.a[4] + m.a[6]*n.a[8]  + m.a[7]*n.a[12];
+    result.m[1][1] = m.a[4]*n.a[1] + m.a[5]*n.a[5] + m.a[6]*n.a[9]  + m.a[7]*n.a[13];
+    result.m[1][2] = m.a[4]*n.a[2] + m.a[5]*n.a[6] + m.a[6]*n.a[10] + m.a[7]*n.a[14];
+    result.m[1][3] = m.a[4]*n.a[3] + m.a[5]*n.a[7] + m.a[6]*n.a[11] + m.a[7]*n.a[15];
 
-    m.m[2][0] = m.a[8]*n.a[0] + m.a[9]*n.a[4] + m.a[10]*n.a[8]  + m.a[11]*n.a[12];
-    m.m[2][1] = m.a[8]*n.a[1] + m.a[9]*n.a[5] + m.a[10]*n.a[9]  + m.a[11]*n.a[13];
-    m.m[2][2] = m.a[8]*n.a[2] + m.a[9]*n.a[6] + m.a[10]*n.a[10] + m.a[11]*n.a[14];
-    m.m[2][3] = m.a[8]*n.a[3] + m.a[9]*n.a[7] + m.a[10]*n.a[11] + m.a[11]*n.a[15];
+    result.m[2][0] = m.a[8]*n.a[0] + m.a[9]*n.a[4] + m.a[10]*n.a[8]  + m.a[11]*n.a[12];
+    result.m[2][1] = m.a[8]*n.a[1] + m.a[9]*n.a[5] + m.a[10]*n.a[9]  + m.a[11]*n.a[13];
+    result.m[2][2] = m.a[8]*n.a[2] + m.a[9]*n.a[6] + m.a[10]*n.a[10] + m.a[11]*n.a[14];
+    result.m[2][3] = m.a[8]*n.a[3] + m.a[9]*n.a[7] + m.a[10]*n.a[11] + m.a[11]*n.a[15];
 
-    m.m[3][0] = m.a[12]*n.a[0] + m.a[13]*n.a[4] + m.a[14]*n.a[8]  + m.a[15]*n.a[12];
-    m.m[3][1] = m.a[12]*n.a[1] + m.a[13]*n.a[5] + m.a[14]*n.a[9]  + m.a[15]*n.a[13];
-    m.m[3][2] = m.a[12]*n.a[2] + m.a[13]*n.a[6] + m.a[14]*n.a[10] + m.a[15]*n.a[14];
-    m.m[3][3] = m.a[12]*n.a[3] + m.a[13]*n.a[7] + m.a[14]*n.a[11] + m.a[15]*n.a[15];
+    result.m[3][0] = m.a[12]*n.a[0] + m.a[13]*n.a[4] + m.a[14]*n.a[8]  + m.a[15]*n.a[12];
+    result.m[3][1] = m.a[12]*n.a[1] + m.a[13]*n.a[5] + m.a[14]*n.a[9]  + m.a[15]*n.a[13];
+    result.m[3][2] = m.a[12]*n.a[2] + m.a[13]*n.a[6] + m.a[14]*n.a[10] + m.a[15]*n.a[14];
+    result.m[3][3] = m.a[12]*n.a[3] + m.a[13]*n.a[7] + m.a[14]*n.a[11] + m.a[15]*n.a[15];
 
-    return m;
+    return result;
 }
 
 #if defined(__cplusplus)
@@ -512,14 +525,22 @@ inline void M4x4_apply_rotate_z(M4x4& m, f32 angle_degrees)
 {
     f32 cos_value = gj_cos(angle_degrees * DEG_TO_RAD);
     f32 sin_value = gj_sin(angle_degrees * DEG_TO_RAD);
-    m.a[0] = m.a[0] * cos_value - m.a[4] * sin_value;
-    m.a[1] = m.a[1] * cos_value - m.a[5] * sin_value;
-    m.a[2] = m.a[2] * cos_value - m.a[6] * sin_value;
-    m.a[3] = m.a[3] * cos_value - m.a[7] * sin_value;
-    m.a[4] = m.a[0] * sin_value + m.a[4] * cos_value;
-    m.a[5] = m.a[1] * sin_value + m.a[5] * cos_value;
-    m.a[6] = m.a[2] * sin_value + m.a[6] * cos_value;
-    m.a[7] = m.a[3] * sin_value + m.a[7] * cos_value;    
+    f32 _0 = m.a[0] * cos_value - m.a[4] * sin_value;
+    f32 _1 = m.a[1] * cos_value - m.a[5] * sin_value;
+    f32 _2 = m.a[2] * cos_value - m.a[6] * sin_value;
+    f32 _3 = m.a[3] * cos_value - m.a[7] * sin_value;
+    f32 _4 = m.a[0] * sin_value + m.a[4] * cos_value;
+    f32 _5 = m.a[1] * sin_value + m.a[5] * cos_value;
+    f32 _6 = m.a[2] * sin_value + m.a[6] * cos_value;
+    f32 _7 = m.a[3] * sin_value + m.a[7] * cos_value;
+    m.a[0] = _0;
+    m.a[1] = _1;
+    m.a[2] = _2;
+    m.a[3] = _3;
+    m.a[4] = _4;
+    m.a[5] = _5;
+    m.a[6] = _6;
+    m.a[7] = _7;
 }
 #else
 inline void M4x4_apply_translate(M4x4* m, f32 x, f32 y, f32 z)
@@ -619,15 +640,24 @@ M4x4 M4x4_projection_matrix(f32 field_of_view_degrees, f32 aspect_w_over_h,
                             f32 near_plane, f32 far_plane)
 {
     M4x4 result = M4x4_identity();
+#if 0
     f32 t = gj_tan(field_of_view_degrees * DEG_TO_RAD / 2.0f);
     f32 height = near_plane * t;
     f32 width = height * aspect_w_over_h;
-    result.a[0]  = near_plane / width;
-    result.a[5]  = near_plane / height;
-    result.a[10] = -(far_plane + near_plane) / (far_plane - near_plane);
-    result.a[11] = -(2 * far_plane * near_plane) / (far_plane - near_plane);
-    result.a[14] = -1;
-    result.a[15] = 0;
+    result.m[0][0] = near_plane / width;
+    result.m[1][1] = near_plane / height;
+    result.m[2][2] = -(far_plane + near_plane) / (far_plane - near_plane);
+    result.m[2][3] = -(2.0f * far_plane * near_plane) / (far_plane - near_plane);
+    result.m[3][2] = -1.0f;
+    result.m[3][3] = 0;
+#endif
+    f32 t = gj_tan(field_of_view_degrees * DEG_TO_RAD / 2.0f);
+    result._00 = 1.0f / t;
+    result._11 = result._00 * aspect_w_over_h;
+    result._22 = -(far_plane + near_plane) / (far_plane - near_plane);
+    result._23 = -(2.0f * far_plane * near_plane) / (far_plane - near_plane);
+    result._32 = -1.0f;
+    result._33 = 0.0f;
     return result;
 }
 
@@ -635,13 +665,20 @@ M4x4 M4x4_inverse_projection_matrix(M4x4 projection_matrix)
 {
     M4x4 result;
     gj__ZeroStruct(result);
-    result.a[0]  = 1.0f / projection_matrix.a[0];
-    result.a[5]  = 1.0f / projection_matrix.a[5];
-    result.a[10] = 0.0f;
-    result.a[11] = -1.0f;
-    f32 inv_d = 1.0f / projection_matrix.a[11];
-    result.a[14] = inv_d;
-    result.a[15] = inv_d * projection_matrix.a[10];
+#if 0
+    result.m[0][0] = 1.0f / projection_matrix.m[0][0];
+    result.m[1][1] = 1.0f / projection_matrix.m[1][1];
+    result.m[2][3] = 0.0f;
+    result.m[2][3] = -1.0f;
+    f32 inv_d = 1.0f / projection_matrix.m[2][3];
+    result.m[3][2] = inv_d;
+    result.m[3][3] = inv_d * projection_matrix.m[2][2];
+#endif
+    result._00 = 1.0f / projection_matrix._00;
+    result._11 = 1.0f / projection_matrix._11;
+    result._23 = -1.0f;
+    result._32 = 1.0f /projection_matrix._23;
+    result._33 = projection_matrix._22 / projection_matrix._23;
     return result;
 }
 

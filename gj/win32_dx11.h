@@ -32,8 +32,6 @@ struct Win32DX11
 #endif
 };
 
-global_variable Win32DX11 g_win32_dx11;
-
 static inline void
 D3D11_compile_shader(const void* shader_file_contents,
                      const size_t shader_file_contents_size,
@@ -49,7 +47,7 @@ D3D11_compile_shader(const void* shader_file_contents,
         shader_file_contents_size,
         shader_name,
         defines,
-        NULL,
+        D3D_COMPILE_STANDARD_FILE_INCLUDE,
         entry_point,
         target,
 #if GJ_DEBUG
@@ -68,7 +66,8 @@ D3D11_compile_shader(const void* shader_file_contents,
 }
 
 static void
-win32_init_directx11_render_views(ID3D11Device* device, IDXGISwapChain* swap_chain,
+win32_init_directx11_render_views(Win32DX11* win32_dx11,
+                                  ID3D11Device* device, IDXGISwapChain* swap_chain,
                                   ID3D11RenderTargetView** frame_buffer_view,
                                   ID3D11DepthStencilView** depth_buffer_view)
 {
@@ -99,7 +98,7 @@ win32_init_directx11_render_views(ID3D11Device* device, IDXGISwapChain* swap_cha
     D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc;
     depth_stencil_view_desc.Format             = DXGI_FORMAT_D24_UNORM_S8_UINT;
     depth_stencil_view_desc.Flags              = 0;
-    if (g_win32_dx11.config.msaa == 1)
+    if (win32_dx11->config.msaa == 1)
     {
         depth_stencil_view_desc.ViewDimension      = D3D11_DSV_DIMENSION_TEXTURE2D;
         depth_stencil_view_desc.Texture2D.MipSlice = 0;
@@ -117,10 +116,10 @@ win32_init_directx11_render_views(ID3D11Device* device, IDXGISwapChain* swap_cha
 }
 
 static void
-win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
+win32_init_directx11(Win32DX11* win32_dx11, HWND window, DirectX11Config config = {true, 1})
 {
     gj_Assert(config.msaa == 1 || config.msaa == 2 || config.msaa == 4 || config.msaa == 8 || config.msaa == 16);
-    g_win32_dx11.config = config;
+    win32_dx11->config = config;
     
     D3D_FEATURE_LEVEL levels[] = {
         D3D_FEATURE_LEVEL_11_1,
@@ -144,19 +143,19 @@ win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
             levels,                      // List of feature levels this app can support.
             gj_ArrayCount(levels),       // Size of the list above.
             D3D11_SDK_VERSION,           // Always set this to D3D11_SDK_VERSION for Windows Store apps.
-            &g_win32_dx11.device,        // Returns the Direct3D device created.
+            &win32_dx11->device,        // Returns the Direct3D device created.
             &actual_level,               // Returns feature level of device created.
-            &g_win32_dx11.device_context // Returns the device immediate context.
+            &win32_dx11->device_context // Returns the device immediate context.
         );
         gj_AssertDebug(SUCCEEDED(hr));
     }
 
 #if GJ_DEBUG
     {
-        HRESULT hr = g_win32_dx11.device->QueryInterface(__uuidof(ID3D11Debug), (void**)&g_win32_dx11.debug_context);
+        HRESULT hr = win32_dx11->device->QueryInterface(__uuidof(ID3D11Debug), (void**)&win32_dx11->debug_context);
         gj_Assert(SUCCEEDED(hr));
         ID3D11InfoQueue* debug_queue;
-        hr = g_win32_dx11.debug_context->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&debug_queue);
+        hr = win32_dx11->debug_context->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&debug_queue);
         gj_Assert(SUCCEEDED(hr));
         debug_queue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
         debug_queue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR,      true);
@@ -186,7 +185,7 @@ win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
         IDXGIFactory* factory;
         {
             IDXGIDevice* dxgi_device;
-            HRESULT hr = g_win32_dx11.device->QueryInterface(__uuidof(IDXGIDevice), (void **)&dxgi_device);
+            HRESULT hr = win32_dx11->device->QueryInterface(__uuidof(IDXGIDevice), (void **)&dxgi_device);
             gj_Assert(SUCCEEDED(hr));
     
             IDXGIAdapter* adapter;
@@ -200,9 +199,9 @@ win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
         }
 
         gj_OnlyDebug(HRESULT hr = )factory->CreateSwapChain(
-            g_win32_dx11.device,
+            win32_dx11->device,
             &desc,
-            &g_win32_dx11.swap_chain
+            &win32_dx11->swap_chain
         );
         factory->Release();
         gj_AssertDebug(SUCCEEDED(hr));
@@ -213,8 +212,9 @@ win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
 
     // ID3D11RenderTargetView
     // ID3D11DepthStencilView
-    win32_init_directx11_render_views(g_win32_dx11.device, g_win32_dx11.swap_chain,
-                                      &g_win32_dx11.frame_buffer_view, &g_win32_dx11.depth_buffer_view);
+    win32_init_directx11_render_views(win32_dx11,
+                                      win32_dx11->device, win32_dx11->swap_chain,
+                                      &win32_dx11->frame_buffer_view, &win32_dx11->depth_buffer_view);
     
     // ID3D11RasterizerState
     {
@@ -229,7 +229,7 @@ win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
         rasterizer_desc.ScissorEnable         = FALSE;
         rasterizer_desc.MultisampleEnable     = FALSE;
         rasterizer_desc.AntialiasedLineEnable = FALSE;
-        gj_OnlyDebug(HRESULT hr = )g_win32_dx11.device->CreateRasterizerState(&rasterizer_desc, &g_win32_dx11.rasterizer_state);
+        gj_OnlyDebug(HRESULT hr = )win32_dx11->device->CreateRasterizerState(&rasterizer_desc, &win32_dx11->rasterizer_state);
         gj_AssertDebug(SUCCEEDED(hr));
     }
 
@@ -249,7 +249,7 @@ win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
         depth_stencil_desc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
         depth_stencil_desc.FrontFace        = depth_stencil_op_desc;
         depth_stencil_desc.BackFace         = depth_stencil_op_desc;
-        gj_OnlyDebug(HRESULT hr = )g_win32_dx11.device->CreateDepthStencilState(&depth_stencil_desc, &g_win32_dx11.depth_stencil_state);
+        gj_OnlyDebug(HRESULT hr = )win32_dx11->device->CreateDepthStencilState(&depth_stencil_desc, &win32_dx11->depth_stencil_state);
         gj_AssertDebug(SUCCEEDED(hr));
     }
 
@@ -271,7 +271,7 @@ win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
         blend_desc.IndependentBlendEnable = false;
         blend_desc.RenderTarget[0] = render_target_blend_desc;
 
-        g_win32_dx11.device->CreateBlendState(&blend_desc, &g_win32_dx11.blend_state);
+        win32_dx11->device->CreateBlendState(&blend_desc, &win32_dx11->blend_state);
     }
 #endif
     
@@ -279,7 +279,7 @@ win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
     if (config.disable_alt_enter_fullscreen)
     {
         IDXGIDevice* dxgi_device;
-        HRESULT hr = g_win32_dx11.device->QueryInterface(__uuidof(IDXGIDevice), (void **)&dxgi_device);
+        HRESULT hr = win32_dx11->device->QueryInterface(__uuidof(IDXGIDevice), (void **)&dxgi_device);
         gj_Assert(SUCCEEDED(hr));
 
         IDXGIAdapter* dxgi_adapter;
@@ -296,9 +296,9 @@ win32_init_directx11(HWND window, DirectX11Config config = {true, 1})
 }
 
 static void
-win32_d3d11_set_state(u32 viewport_width, u32 viewport_height)
+win32_d3d11_set_state(Win32DX11* win32_dx11, u32 viewport_width, u32 viewport_height)
 {
-    ID3D11DeviceContext* device_context = g_win32_dx11.device_context;
+    ID3D11DeviceContext* device_context = win32_dx11->device_context;
 
     D3D11_VIEWPORT viewport;
     viewport.TopLeftX = 0.0f;
@@ -308,22 +308,23 @@ win32_d3d11_set_state(u32 viewport_width, u32 viewport_height)
     viewport.MinDepth = 0.0f;
     viewport.MaxDepth = 1.0f;
     device_context->RSSetViewports(1, &viewport);
-    device_context->RSSetState(g_win32_dx11.rasterizer_state);
+    device_context->RSSetState(win32_dx11->rasterizer_state);
     
-    device_context->OMSetDepthStencilState(g_win32_dx11.depth_stencil_state, 0);
+    device_context->OMSetDepthStencilState(win32_dx11->depth_stencil_state, 0);
     f32 blend_factor[] = {0.0f, 0.0f, 0.0f, 0.0f};
-    device_context->OMSetBlendState(g_win32_dx11.blend_state, NULL, 0xFFFFFFFF);
-    device_context->OMSetRenderTargets(1, &g_win32_dx11.frame_buffer_view, g_win32_dx11.depth_buffer_view);
+    device_context->OMSetBlendState(win32_dx11->blend_state, NULL, 0xFFFFFFFF);
+    device_context->OMSetRenderTargets(1, &win32_dx11->frame_buffer_view, win32_dx11->depth_buffer_view);
 }
 
 static void
-win32_d3d11_resize()
+win32_d3d11_resize(Win32DX11* win32_dx11)
 {
-    if (g_win32_dx11.frame_buffer_view) g_win32_dx11.frame_buffer_view->Release();
-    if (g_win32_dx11.depth_buffer_view) g_win32_dx11.depth_buffer_view->Release();
-    g_win32_dx11.swap_chain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
-    win32_init_directx11_render_views(g_win32_dx11.device, g_win32_dx11.swap_chain,
-                                      &g_win32_dx11.frame_buffer_view, &g_win32_dx11.depth_buffer_view);
+    if (win32_dx11->frame_buffer_view) win32_dx11->frame_buffer_view->Release();
+    if (win32_dx11->depth_buffer_view) win32_dx11->depth_buffer_view->Release();
+    win32_dx11->swap_chain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
+    win32_init_directx11_render_views(win32_dx11,
+                                      win32_dx11->device, win32_dx11->swap_chain,
+                                      &win32_dx11->frame_buffer_view, &win32_dx11->depth_buffer_view);
 }
 
 #endif

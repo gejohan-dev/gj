@@ -19,6 +19,13 @@ int gj_sprintf(char* buffer, char* format, ...)
     return result;
 }
 
+int gj_vsprintf(char* buffer, char* format, va_list args)
+{
+    int result;
+    result = stbsp_vsprintf(buffer, format, args);
+    return result;
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Types
 ///////////////////////////////////////////////////////////////////////////
@@ -345,15 +352,12 @@ void clear_arena(MemoryArena* arena)
 #define push_struct(arena, type) (type*)_push(arena, sizeof(type), 4)
 void* _push(MemoryArena* arena, size_t size, size_t alignment)
 {
-    size_t result_pointer = (size_t)arena->base + arena->used;
+    uintptr_t result_pointer = (uintptr_t)arena->base + arena->used;
     
     size_t alignment_offset = 0;
     
     size_t alignment_mask = alignment - 1;
-    if (result_pointer & alignment_mask)
-    {
-        alignment_offset = alignment - result_pointer & alignment_mask;
-    }
+    alignment_offset = (alignment - result_pointer & alignment_mask) & alignment_mask;
     size += alignment_offset;
     
     gj_AssertDebug(arena->used + size <= arena->size);
@@ -469,15 +473,17 @@ typedef struct TicketMutex
     u64 volatile serving;
 } TicketMutex;
 
-typedef PlatformFileHandle   GetFileHandle(const char* file_name, u8 mode_flags);
+struct PlatformAPI;
+
+typedef PlatformFileHandle   GetFileHandle(PlatformAPI* platform_api, const char* file_name, u8 mode_flags);
 typedef void                 ReadDataFromFileHandle(PlatformFileHandle file_handle, size_t offset, size_t size, void* dst);
-typedef void                 WriteDataToFileHandle(PlatformFileHandle file_handle, size_t offset, size_t size, void* src);
-typedef void                 CloseFileHandle(PlatformFileHandle file_handle);
-typedef PlatformFileListing* ListFiles(MemoryArena* memory_arena, const char* file_name_pattern);
+typedef void                 WriteDataToFileHandle(PlatformAPI* platform_api, PlatformFileHandle file_handle, size_t offset, size_t size, void* src);
+typedef void                 CloseFileHandle(PlatformAPI* platform_api, PlatformFileHandle file_handle);
+typedef PlatformFileListing* ListFiles(void* memory, size_t memory_max_size, const char* file_name_pattern);
 typedef void*                AllocateMemory(size_t size);
 typedef void                 DeallocateMemory(void* memory);
-typedef void                 NewThread(PlatformThreadContext* thread_context);
-typedef b32                  WaitForThreads(PlatformThreadContext* threads, u32 thread_count);
+typedef void                 NewThread(PlatformAPI* platform_api, PlatformThreadContext* thread_context);
+typedef b32                  WaitForThreads(PlatformAPI* platform_api, PlatformThreadContext* threads, u32 thread_count);
 typedef ThreadStatus         CheckThreadStatus(PlatformThreadContext thread_context);
 typedef void                 BeginTicketMutex(TicketMutex* ticket_mutex);
 typedef void                 EndTicketMutex(TicketMutex* ticket_mutex);
@@ -498,7 +504,7 @@ typedef struct SoundBuffer
 
 typedef u32         GetMaxQueuedSoundBuffers();
 typedef u32         QueuedSoundBuffers();
-typedef SoundBuffer CreatesoundBuffer(uint32_t sample_count);
+typedef SoundBuffer CreatesoundBuffer(PlatformAPI* platform_api, uint32_t sample_count);
 typedef void        SubmitSoundBuffer(SoundBuffer sound_buffer);
 typedef u32         GetRemainingSamples(SoundBuffer sound_buffer);
 
@@ -570,9 +576,9 @@ typedef struct PlatformAPI
     //
     // Window dimensions
     //
-    b32 should_update_window_size; // TODO: Store prev sizes instead?
-    u32 window_width;
-    u32 window_height;
+    b32 should_update_viewport_size; // TODO: Store prev sizes instead?
+    u32 viewport_width;
+    u32 viewport_height;
 
 #if GJ_DEBUG
     b32 debug_mode_on;
