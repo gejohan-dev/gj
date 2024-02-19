@@ -123,6 +123,8 @@ inline V2f V2_rotate           (V2f v, f32 a_radians)
     result.y = gj_sin(a_radians) * v.x + gj_cos(a_radians) * v.y;
     return result;
 }
+inline b32 V2_equal            (V2f v, V2f u)     { return gj_float_eq(v.x, u.x) && gj_float_eq(v.y, u.y); }
+inline V2f V2_neg              (V2f v)            { return {-v.x, -v.y}; }
 
 // Transform to other data types
 inline V3f V2_to_V3(V2f v, f32 z = 0.0f)                   { V3f v3f; v3f.x = v.x; v3f.y = v.y; v3f.z = z; return v3f; }

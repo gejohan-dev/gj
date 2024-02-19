@@ -93,6 +93,8 @@ typedef u8 one_byte;
 
 #define gj_AssertDebug(Exp) gj_OnlyDebug(gj_Assert(Exp))
 
+#define StructInput(...) {__VA_ARGS__}
+
 #define BUFFER_SIZE 512
 
 #define InvalidCodePath gj_OnlyDebug(gj_Assert(!"InvalidCodePath"))
