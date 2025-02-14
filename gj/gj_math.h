@@ -56,7 +56,7 @@ inline b32 unknown_bounds_check(f32 x, f32 a, f32 b, f32 delta)
 inline f32 gj_sqrt (f32 x)        { return sqrtf(x); }
 inline f32 gj_pow  (f32 x, f32 n) { return powf(x,n); }
 inline s32 gj_round(f32 x)        { return lroundf(x); }
-inline s32 gj_floor(f32 x)        { return floorf(x); }
+inline s32 gj_floor(f32 x)        { return (s32)floorf(x); }
 
 ///////////////////////////////////////////////////////////////////////////
 // Trigonometric Functions
@@ -178,13 +178,14 @@ inline f32 V3_length     (V3f v0)                     { return gj_sqrt(v0.x * v0
 #if defined(__cplusplus)
 inline V3f V3_mul        (f32 x1, f32 y1, f32 z1,
                           f32 x2, f32 y2, f32 z2)     { V3f v; v.x = (x1 * x2); v.y = (y1 * y2); v.z = (z1 * z2); return v; }
+inline V3f V3_mul        (V3f v0, V3f v1)             { V3f v; v.x = (v0.x * v1.x); v.y = (v0.y * v1.y); v.z = (v0.z * v1.z); return v; }
 inline V3f V3_mul        (f32 c, V3f v0)              { V3f v; v.x = (c * v0.x); v.y = (c * v0.y); v.z = (c * v0.z); return v; }
 inline V3f V3_mul        (V3f v0, f32 c)              { return V3_mul(c, v0); }
 inline V3f V3_mul        (f32 x, f32 y, f32 z, f32 c) { V3f v; v.x = (c * x); v.y = (c * y); v.z = (c * z); return v; }
 #else
 inline V3f V3_mul        (f32 c, V3f v0)              { V3f v; v.x = (c * v0.x); v.y = (c * v0.y); v.z = (c * v0.z); return v; }
 #endif
-inline V3f V3_div        (f32 x, V3f v)               { v.x  = (x / v.x); v.y = (x / v.y); v.z = (x / v.z);  return v; }
+inline V3f V3_div        (V3f v0, V3f v1)             { V3f v; v.x = (v0.x / v1.x); v.y = (v0.y / v1.y); v.z = (v0.z / v1.z); return v; }
 inline V3f V3_normalize  (V3f v)
 {
     f32 l = V3_length(v);
@@ -196,6 +197,7 @@ inline f32 V3_dot        (V3f v0, V3f v1)             { return v0.x * v1.x + v0.
 inline V3f V3_cross      (V3f v0, V3f v1)             { V3f v; v.x = (v0.y * v1.z - v0.z * v1.y); v.y = (v0.z * v1.x - v0.x * v1.z); v.z = (v0.x * v1.y - v0.y * v1.x); return v; }
 inline V3f V3_neg        (V3f v)                      { return {-v.x, -v.y, -v.z}; }
 inline f32 V3_distance   (V3f v0, V3f v1)             { return V3_length(V3_sub(v0, v1)); }
+inline b32 V3_equal      (V3f v0, V3f v1)             { return gj_float_eq(v0.x, v1.x) && gj_float_eq(v0.y, v1.y) && gj_float_eq(v0.z, v1.z); }
 
 inline V2f V3_xz(V3f v) { return {v.x, v.z}; }
 
@@ -480,7 +482,7 @@ inline void M4x4_apply_translate(M4x4& m, f32 x, f32 y, f32 z)
     m.a[3]  += m.a[0]*x  + m.a[1]*y  + m.a[2]*z;
     m.a[7]  += m.a[4]*x  + m.a[5]*y  + m.a[6]*z;
     m.a[11] += m.a[8]*x  + m.a[9]*y  + m.a[10]*z;
-    m.a[15] += m.a[12]*x + m.a[13]*y + m.a[14]*z;    
+    m.a[15] += m.a[12]*x + m.a[13]*y + m.a[14]*z;
 }
 inline void M4x4_apply_translate(M4x4& m, V3f v) { M4x4_apply_translate(m, v.x, v.y, v.z); }
 
@@ -597,11 +599,9 @@ M4x4 M4x4_model_view_matrix(V3f camera_pos, V3f camera_direction, V3f up, b32 tr
     };
     if (translate)
     {
-#if defined(__cplusplus)
-        M4x4_apply_translate(result, -camera_pos.x, -camera_pos.y, -camera_pos.z);
-#else
-        M4x4_apply_translate(&result, -camera_pos.x, -camera_pos.y, -camera_pos.z);
-#endif
+        result.m[0][3] = -V3_dot(camera_right,     camera_pos);
+        result.m[1][3] = -V3_dot(camera_up,        camera_pos);
+        result.m[2][3] = -V3_dot(camera_direction, camera_pos);
     }
     return result;
 }
@@ -609,13 +609,17 @@ M4x4 M4x4_model_view_matrix(V3f camera_pos, V3f camera_direction, V3f up, b32 tr
 M4x4 M4x4_inverse_model_view_matrix(M4x4 model_view_matrix, V3f camera_pos)
 {
     M4x4 result = model_view_matrix;
+    result.m[0][3] = 0.0f; 
+    result.m[1][3] = 0.0f;
+    result.m[2][3] = 0.0f;
 #if defined(__cplusplus)
-    M4x4_apply_translate(result, camera_pos.x, camera_pos.y, camera_pos.z);
     M4x4_apply_transpose(result);
 #else
-    M4x4_apply_translate(&result, camera_pos.x, camera_pos.y, camera_pos.z);
     M4x4_apply_transpose(&result);
 #endif
+    result.m[0][3] = -model_view_matrix.m[0][3];
+    result.m[1][3] = -model_view_matrix.m[1][3];
+    result.m[2][3] = -model_view_matrix.m[2][3];
     return result;
 }
 
@@ -685,15 +689,15 @@ M4x4 M4x4_inverse_projection_matrix(M4x4 projection_matrix)
 }
 
 /* M4x4 M4x4_orthographic_matrix(f32 aspect_w_over_h, f32 near_plane, f32 far_plane) */
-/* M4x4 M4x4_orthographic_matrix(f32 left, f32 right, f32 up, f32 down, f32 near_plane, f32 far_plane) */
-M4x4 M4x4_orthographic_matrix(f32 width, f32 height, f32 near_plane, f32 far_plane)
+M4x4 M4x4_orthographic_matrix(f32 l, f32 r, f32 t, f32 b, f32 n, f32 f)
+/* M4x4 M4x4_orthographic_matrix(f32 width, f32 height, f32 near_plane, f32 far_plane) */
 {
     M4x4 result = M4x4_identity();
 #if 0
     result.m[1][1] = aspect_w_over_h;
     result.m[2][2] = 2.0f / (near_plane - far_plane);
     result.m[2][3] = (near_plane + far_plane) / (near_plane - far_plane);
-#elif 1
+#elif 0
     result._00 =  2.0f / width;
     result._03 = -1.0f;
     result._11 =  2.0f / height;
@@ -707,6 +711,26 @@ M4x4 M4x4_orthographic_matrix(f32 width, f32 height, f32 near_plane, f32 far_pla
     result._13 = -1.0f;
     result._22 = 1.0f / (near_plane - far_plane);
     result._32 = near_plane / (near_plane - far_plane);
+#elif 1
+    result.m[0][0] = 2 / (r - l);
+    result.m[0][1] = 0;
+    result.m[0][2] = 0;
+    result.m[0][3] = 0;
+
+    result.m[1][0] = 0;
+    result.m[1][1] = 2 / (t - b);
+    result.m[1][2] = 0;
+    result.m[1][3] = 0;
+
+    result.m[2][0] = 0;
+    result.m[2][1] = 0;
+    result.m[2][2] = -2 / (f - n);
+    result.m[2][3] = 0;
+
+    result.m[3][0] = -(r + l) / (r - l);
+    result.m[3][1] = -(t + b) / (t - b);
+    result.m[3][2] = -(f + n) / (f - n);
+    result.m[3][3] = 1;
 #endif
     return result;
 }
@@ -738,6 +762,19 @@ V3f_fps_forward_vector(f32 yaw_radians, f32 pitch_radians)
 
 inline b32
 rectangle_bounds_check(f32 px, f32 py, f32 rx1, f32 rx2, f32 ry1, f32 ry2) { return px >= rx1 && px < rx2 && py >= ry1 && py < ry2; }
+
+b32 V3_box_contains_point(V3f box_start, V3f box_end, V3f pos)
+{
+    V3f box_half = V3_mul(0.5f, V3_sub(box_end, box_start));
+    V3f box_center = V3_add(box_start, box_half);
+    V3f dx = {1.0f, 0.0f, 0.0f};
+    V3f dy = {0.0f, 1.0f, 0.0f};
+    V3f dz = {0.0f, 0.0f, 1.0f};
+    V3f d = V3_sub(pos, box_center);
+    return (gj_Abs(V3_dot(d, dx)) <= box_half.x &&
+            gj_Abs(V3_dot(d, dy)) <= box_half.y &&
+            gj_Abs(V3_dot(d, dz)) <= box_half.z);
+}
 
 V3f V3f_get_mouse_ray(M4x4 inverse_model_view_matrix, M4x4 inverse_projection_matrix,
                       u32 window_width, u32 window_height,
@@ -788,7 +825,11 @@ b32 ray_triangle_intersection(V3f v0, V3f v1, V3f v2,
     if (v < 0.0f || u + v > 1.0f) return gj_False; 
  
     f32 t = V3_dot(edge2, qvec) * inv_det;
-    *pos = V3_add(*pos, V3_mul(t, ray_direction));
+    if (t < 0.0f)
+    {
+        return gj_False;
+    }
+    *pos = V3_add(ray_origin, V3_mul(t, ray_direction));
         
     return gj_True;
 }
@@ -798,7 +839,7 @@ b32 ray_rectangle_intersection(V3f min_min_pos, V3f max_min_pos,
                                V3f ray_origin, V3f ray_direction,
                                V3f* pos)
 {
-    b32 result = (ray_triangle_intersection(min_min_pos, min_max_pos, max_max_pos, ray_origin, ray_direction, pos) |
+    b32 result = (ray_triangle_intersection(min_min_pos, min_max_pos, max_max_pos, ray_origin, ray_direction, pos) ||
                   ray_triangle_intersection(min_min_pos, max_max_pos, max_min_pos, ray_origin, ray_direction, pos));
     return result;
 }
@@ -818,6 +859,21 @@ b32 ray_rectangle_intersection(V3f min_min_pos, V3f max_max_pos,
     return result;
 }
 #endif
+
+b32 ray_box_intersection(V3f ray_origin, V3f ray_direction,
+                         V3f box_min, V3f box_max,
+                         V3f* hit_pos)
+{
+    V3f t_low   = V3_div(V3_sub(box_min, ray_origin), ray_direction);
+    V3f t_high  = V3_div(V3_sub(box_max, ray_origin), ray_direction);
+    f32 t_close = gj_Max(gj_Max(gj_Min(t_low.x, t_high.x), gj_Min(t_low.y, t_high.y)), gj_Min(t_low.z, t_high.z));
+    f32 t_far   = gj_Min(gj_Min(gj_Max(t_low.x, t_high.x), gj_Max(t_low.y, t_high.y)), gj_Max(t_low.z, t_high.z));
+    if (hit_pos)
+    {
+        *hit_pos = V3_add(ray_origin, V3_mul(t_close, ray_direction));
+    }
+    return t_close >= 0.0f && gj_float_leq(t_close, t_far);
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // Grid Math

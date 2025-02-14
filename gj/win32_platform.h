@@ -30,55 +30,64 @@ win32_assert(bool exp)
 ///////////////////////////////////////////////////////////////////////////
 // OS API
 ///////////////////////////////////////////////////////////////////////////
-PlatformFileHandle win32_get_file_handle(PlatformAPI* platform_api, const char* file_name, u8 mode_flags)
+void* win32_allocate_memory(size_t size);
+void  win32_deallocate_memory(void* memory);
+
+PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
 {
     PlatformFileHandle result;
     gj__ZeroStruct(result);
 
     DWORD handle_permissions = 0;
     DWORD handle_creation = 0;
+    
+    gj_AssertDebug((mode_flags & PlatformOpenFileModeFlags_Read) || (mode_flags & PlatformOpenFileModeFlags_Write));
+    
     if (mode_flags & PlatformOpenFileModeFlags_Read)
     {
         handle_permissions |= GENERIC_READ;
         handle_creation    = OPEN_EXISTING;
-
-        WIN32_FILE_ATTRIBUTE_DATA file_attribute_data;
-        gj_OnlyDebug(BOOL ok = )GetFileAttributesExA(file_name, GetFileExInfoStandard, &file_attribute_data);
-        win32_assert(ok);
-        // TODO: If files ever get this big I need to implement handling when reading data by DWORD in ReadFile
-        gj_AssertDebug(file_attribute_data.nFileSizeHigh == 0);
-        result.file_size = file_attribute_data.nFileSizeLow;
     }
-    else if (mode_flags & PlatformOpenFileModeFlags_Write)
+
+    if (mode_flags & PlatformOpenFileModeFlags_Write)
     {
         handle_permissions |= GENERIC_WRITE;
-        handle_permissions |= FILE_APPEND_DATA;
-        // TODO: OPEN_ALWAYS - create file if not exists, should there be an option to
-        //       1) CREATE_NEW    - not overwrite
-        //       2) CREATE_ALWAYS - always overwrite
-        handle_creation    = OPEN_ALWAYS;
-        result.file_size = 0;
+        if (mode_flags & PlatformOpenFileModeFlags_Overwrite)
+        {
+            handle_creation = CREATE_ALWAYS;
+        }
+        else
+        {
+            handle_creation = OPEN_ALWAYS;
+        }
     }
-    else InvalidCodePath;
 
     char buffer[BUFFER_SIZE];
     DWORD file_name_size = GetFullPathNameA(file_name, BUFFER_SIZE, buffer, NULL);
-    result.full_file_name = (char*)platform_api->allocate_memory(file_name_size+1);
+    result.full_file_name = (char*)win32_allocate_memory(file_name_size+1);
     memcpy(result.full_file_name, buffer, file_name_size+1);
 
     // TODO: Add FILE_FLAG_SEQUENTIAL_SCAN to dwFlagsAndAttributes since most of the time
     //       the app will just read the file top-to-bottom?
-    result.handle = (void*)CreateFileA(result.full_file_name, handle_permissions,
-                                       FILE_SHARE_READ, 0, handle_creation, FILE_ATTRIBUTE_NORMAL, 0);
-    // TODO: handle invalid handle
-    gj_AssertDebug(result.handle != INVALID_HANDLE_VALUE);
+    *(HANDLE*)&result.handle = CreateFileA(result.full_file_name, handle_permissions,
+                                           FILE_SHARE_READ, 0, handle_creation, FILE_ATTRIBUTE_NORMAL, 0);
+
+    if (result.handle == INVALID_HANDLE_VALUE)
+    {
+        result.handle = PLATFORM_INVALID_FILE_HANDLE;
+    }
+    else
+    {
+        DWORD file_size_high;
+        result.file_size = GetFileSize(result.handle, &file_size_high);
+    }
     
     return result;
 }
 
-void win32_read_data_from_file_handle(PlatformFileHandle file_handle, size_t offset, size_t size, void* dst)
+void win32_read_data_from_file_handle(PlatformFileHandle file_handle, u64 offset, u32 size, void* dst)
 {
-    HANDLE handle = (HANDLE)file_handle.handle;
+    HANDLE handle = *(HANDLE*)&file_handle.handle;
     
     OVERLAPPED overlapped;
     gj__ZeroStruct(overlapped);
@@ -87,32 +96,53 @@ void win32_read_data_from_file_handle(PlatformFileHandle file_handle, size_t off
 
     DWORD bytes_read;
     gj_OnlyDebug(BOOL ok = )ReadFile(handle, dst, gj_safe_cast_u64_to_u32(size), &bytes_read, &overlapped);
+#if defined(GJ_DEBUG)
+    int x = GetLastError();
+#endif
     gj_AssertDebug(ok);
     gj_AssertDebug(bytes_read == size);
 }
 
-void win32_write_data_to_file_handle(PlatformAPI* platform_api, PlatformFileHandle file_handle, size_t offset, size_t size, void* src)
+void win32_write_data_to_file_handle(PlatformFileHandle file_handle, u64 offset, size_t size, void* src)
 {
     HANDLE handle = (HANDLE)file_handle.handle;
 
     OVERLAPPED overlapped;
     gj__ZeroStruct(overlapped);
     overlapped.Offset = gj_safe_cast_u64_to_u32(offset);
-    // NOTE: If offset becomes 64 bit I need to do:
-    // overlapped.OffsetHigh = (u32)((offset >> 32) & 0xFFFFFFFF);
+    overlapped.OffsetHigh = (u32)((offset >> 32) & 0xFFFFFFFF);
 
     DWORD bytes_written;
     gj_OnlyDebug(BOOL ok = )WriteFile(handle, src, gj_safe_cast_u64_to_u32(size), &bytes_written, &overlapped);
+#if defined(GJ_DEBUG)
     int x = GetLastError();
+#endif
     gj_AssertDebug(ok);
     gj_AssertDebug(bytes_written == size);
 }
 
-void win32_close_file_handle(PlatformAPI* platform_api, PlatformFileHandle file_handle)
+void win32_close_file_handle(PlatformFileHandle file_handle)
 {
     gj_OnlyDebug(BOOL ok = )CloseHandle(file_handle.handle);
     gj_AssertDebug(ok);
-    platform_api->deallocate_memory(file_handle.full_file_name);
+    win32_deallocate_memory(file_handle.full_file_name);
+}
+
+u32 win32_read_whole_file(const char* file_name, void* dst)
+{
+    u32 result = 0;
+    PlatformFileHandle file_handle = win32_get_file_handle(file_name, PlatformOpenFileModeFlags_Read);
+    if (file_handle.handle != NULL)
+    {
+        result = file_handle.file_size;
+        win32_read_data_from_file_handle(file_handle, 0, file_handle.file_size, dst);
+        win32_close_file_handle(file_handle);
+    }
+    else
+    {
+        InvalidCodePath;
+    }
+    return result;
 }
 
 PlatformFileListing* win32_list_files(void* memory, size_t memory_max_size, const char* file_name_pattern)
@@ -179,6 +209,10 @@ void win32_deallocate_memory(void* memory)
 {
     if (memory)
     {
+#if 0
+        VirtualFree(memory, 0, MEM_RELEASE);
+#endif
+        
 #if 1
         // NOTE: https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree
         // If the dwFreeType parameter (third) is MEM_RELEASE, this parameter (second) must be 0 (zero).
@@ -363,10 +397,12 @@ u32 win32_get_remaining_samples(SoundBuffer sound_buffer)
 ///////////////////////////////////////////////////////////////////////////
 void win32_init_platform_api(PlatformAPI* platform_api, size_t memory_size)
 {
+    memset(platform_api->_os_api, 0, sizeof(platform_api->_os_api));
     platform_api->get_file_handle            = win32_get_file_handle;
     platform_api->read_data_from_file_handle = win32_read_data_from_file_handle;
     platform_api->write_data_to_file_handle  = win32_write_data_to_file_handle;
     platform_api->close_file_handle          = win32_close_file_handle;
+    platform_api->read_whole_file            = win32_read_whole_file;
     platform_api->list_files                 = win32_list_files;
     platform_api->allocate_memory            = win32_allocate_memory;
     platform_api->deallocate_memory          = win32_deallocate_memory;

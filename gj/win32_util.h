@@ -83,15 +83,13 @@ win32_get_last_write_time(const char* file_name)
 {
     FILETIME result = {};
     WIN32_FILE_ATTRIBUTE_DATA file_attribute_data;
-    if (GetFileAttributesExA(file_name, GetFileExInfoStandard, &file_attribute_data))
-    {
-        result = file_attribute_data.ftLastWriteTime;
-    }
-    else
+    HANDLE file_handle = CreateFileA(file_name, 0, FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (!GetFileTime(file_handle, NULL, NULL, &result))
     {
         DWORD error = GetLastError();
         InvalidCodePath;
     }
+    CloseHandle(file_handle);
     return result;
 }
 
@@ -162,9 +160,10 @@ b32 win32_check_new_dll(Win32HotLoadedDLL dll)
 
 void win32_load_dll(Win32HotLoadedDLL* dll)
 {
-    char _ignored[BUFFER_SIZE];
-    if (!GetFileAttributesExA(dll->lock_file_path, GetFileExInfoStandard, &_ignored))
+    if (GetFileAttributesA(dll->lock_file_path) == INVALID_FILE_ATTRIBUTES)
     {
+        dll->last_write_time = win32_get_last_write_time(dll->dll_file_path);
+
         // Note: This is done to not lock the dll for writing and
         //       also keep old dlls since the program could be
         //       pointing to things in the old dll
@@ -173,10 +172,14 @@ void win32_load_dll(Win32HotLoadedDLL* dll)
         stbsp_sprintf(unique_tmp_file_name, "tmp%d.dll", dll->tmp_dll_number);
         dll->tmp_dll_number++;
         win32_build_exe_file_path(tmp_dll_path, unique_tmp_file_name);
-        gj_OnlyDebug(BOOL ok = )CopyFileA(dll->dll_file_path, tmp_dll_path, FALSE);
-        gj_AssertDebug(ok);
-        
-        dll->last_write_time = win32_get_last_write_time(dll->dll_file_path);
+        BOOL ok = CopyFileA(dll->dll_file_path, tmp_dll_path, FALSE);
+        if (!ok)
+        {
+            // TODO: Logging
+            int error = GetLastError();
+            brk;
+        }
+
         dll->hmodule = LoadLibraryA(tmp_dll_path);
         gj_Assert(dll->hmodule);
     }

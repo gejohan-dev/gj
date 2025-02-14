@@ -210,6 +210,21 @@ static void build_binary_string(u32 number, char* buffer, u32 padding)
     buffer[padding] = '\0';
 }
 
+static u32 gj_read_line(char* s, char* output)
+{
+    u32 result = 0;
+    while (*s != '\n' && *s != '\r')
+    {
+        result++;
+        *output++ = *s++;
+    }
+    if (*s == '\n' || *s == '\r')
+    {
+        result++;
+    }
+    return result;
+}
+
 static s32 gj_parse_digit(char c)
 {
     gj_Assert(gj_IsDigit(c));
@@ -231,21 +246,30 @@ static GJParseNumber gj_parse_number(char* s)
     result.number = 0;
     result.length = 0;
 
-    if (!gj_IsDigit(*s))
+    b32 neg = false;
+    if (*s == '-')
+    {
+        neg = true;
+        s++;
+        result.length++;
+    }
+    else if (!gj_IsDigit(*s))
     {
         result.ok = gj_False;
     }
-    else
+
+    if (result.ok)
     {
         while (gj_IsDigit(*s))
         {
             result.number *= 10;
             result.number += gj_parse_digit(*s);
             s++;
-            result.length++;;
+            result.length++;
         }
     }
-    
+
+    result.number = neg ? -result.number : result.number;
     return result;
 }
 
@@ -438,10 +462,12 @@ gj_DefineArray(s32, S32Array);
 ///////////////////////////////////////////////////////////////////////////
 typedef enum PlatformOpenFileModeFlags
 {
-    PlatformOpenFileModeFlags_Read  = 0x1,
-    PlatformOpenFileModeFlags_Write = 0x2,
+    PlatformOpenFileModeFlags_Read      = 0b001,
+    PlatformOpenFileModeFlags_Write     = 0b010,
+    PlatformOpenFileModeFlags_Overwrite = 0b100
 } PlatformOpenFileModeFlags;
 
+#define PLATFORM_INVALID_FILE_HANDLE NULL
 typedef struct PlatformFileHandle
 {
     void* handle;
@@ -477,10 +503,11 @@ typedef struct TicketMutex
 
 struct PlatformAPI;
 
-typedef PlatformFileHandle   GetFileHandle(PlatformAPI* platform_api, const char* file_name, u8 mode_flags);
-typedef void                 ReadDataFromFileHandle(PlatformFileHandle file_handle, size_t offset, size_t size, void* dst);
-typedef void                 WriteDataToFileHandle(PlatformAPI* platform_api, PlatformFileHandle file_handle, size_t offset, size_t size, void* src);
-typedef void                 CloseFileHandle(PlatformAPI* platform_api, PlatformFileHandle file_handle);
+typedef PlatformFileHandle   GetFileHandle(const char* file_name, u8 mode_flags);
+typedef void                 ReadDataFromFileHandle(PlatformFileHandle file_handle, u64 offset, u32 size, void* dst);
+typedef void                 WriteDataToFileHandle(PlatformFileHandle file_handle, u64 offset, size_t size, void* src);
+typedef void                 CloseFileHandle(PlatformFileHandle file_handle);
+typedef u32                  ReadWholeFile(const char* file_name, void* dst);
 typedef PlatformFileListing* ListFiles(void* memory, size_t memory_max_size, const char* file_name_pattern);
 typedef void*                AllocateMemory(size_t size);
 typedef void                 DeallocateMemory(void* memory);
@@ -540,6 +567,7 @@ typedef struct PlatformAPI
             ReadDataFromFileHandle* read_data_from_file_handle;
             WriteDataToFileHandle*  write_data_to_file_handle;
             CloseFileHandle*        close_file_handle;
+            ReadWholeFile*          read_whole_file;
             ListFiles*              list_files;
             AllocateMemory*         allocate_memory;
             DeallocateMemory*       deallocate_memory;
@@ -554,9 +582,9 @@ typedef struct PlatformAPI
         };
 
 #if GJ_DEBUG
-        u8 _os_api[13 * sizeof(GetFileHandle*)];
+        u8 _os_api[14 * sizeof(GetFileHandle*)];
 #else
-        u8 _os_api[12 * sizeof(GetFileHandle*)];
+        u8 _os_api[13 * sizeof(GetFileHandle*)];
 #endif
     };
 
