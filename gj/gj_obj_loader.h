@@ -87,16 +87,16 @@ gj_obj_loader_parse_s32(GJ_ObjLoader_ParseState* parse_state)
 }
 
 static void
-gj_obj_loader_load(const char* obj_filename,
+gj_obj_loader_load(PlatformAPI* platform_api, const char* obj_filename,
                    V3f* out_positions, V3f* out_normals, V2f* out_uvs, size_t stride, const u32 vertices_max_count, u32* vertex_count,
                    s32* out_indices, const u32 indices_max_count, u32* index_count)
 {
     GJ_ObjLoader_ParseState parse_state;
     gj__ZeroStruct(parse_state);
 
-    parse_state.buffer = (u8*)g_platform_api.allocate_memory(1024 * 1024 * 1024);    
-    PlatformFileHandle obj_file_handle = g_platform_api.get_file_handle(obj_filename, PlatformOpenFileModeFlags_Read);
-    g_platform_api.read_data_from_file_handle(obj_file_handle, 0, obj_file_handle.file_size, parse_state.buffer);
+    parse_state.buffer = (u8*)platform_api->allocate_memory(1024 * 1024);
+    PlatformFileHandle obj_file_handle = platform_api->get_file_handle(obj_filename, PlatformOpenFileModeFlags_Read);
+    platform_api->read_data_from_file_handle(obj_file_handle, 0, obj_file_handle.file_size, parse_state.buffer);
     parse_state.buffer_contents_size = obj_file_handle.file_size;
 
     *vertex_count = 0;
@@ -105,10 +105,10 @@ gj_obj_loader_load(const char* obj_filename,
     u32  position_count  = 0;
     V3f* positions       = out_positions;
     u32  normal_count    = 0;
-    V3f* normals         = (V3f*)g_platform_api.allocate_memory(sizeof(V3f) * vertices_max_count);
+    V3f* normals         = (V3f*)platform_api->allocate_memory(sizeof(V3f) * vertices_max_count);
     V3f* normals_pointer = normals;
     u32  uv_count        = 0;
-    V2f* uvs             = (V2f*)g_platform_api.allocate_memory(sizeof(V2f) * vertices_max_count);
+    V2f* uvs             = (V2f*)platform_api->allocate_memory(sizeof(V2f) * vertices_max_count);
     V2f* uvs_pointer     = uvs;
     s32* indices         = out_indices;
     while (parse_state.buffer_index < parse_state.buffer_contents_size)
@@ -176,10 +176,10 @@ gj_obj_loader_load(const char* obj_filename,
         }
     }
 
-    g_platform_api.deallocate_memory(normals);
-    g_platform_api.deallocate_memory(uvs);
-    g_platform_api.close_file_handle(obj_file_handle);
-    g_platform_api.deallocate_memory(parse_state.buffer);
+    platform_api->deallocate_memory(normals);
+    platform_api->deallocate_memory(uvs);
+    platform_api->close_file_handle(obj_file_handle);
+    platform_api->deallocate_memory(parse_state.buffer);
 }
 
 #undef Pos
