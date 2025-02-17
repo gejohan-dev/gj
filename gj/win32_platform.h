@@ -180,6 +180,34 @@ PlatformFileListing* win32_list_files(void* memory, size_t memory_max_size, cons
     return result;
 }
 
+FileTime win32_get_file_last_write_time(const char* file_name)
+{
+    FileTime result;
+
+    FILETIME filetime = {};
+    WIN32_FILE_ATTRIBUTE_DATA file_attribute_data;
+    HANDLE file_handle = CreateFileA(file_name, 0, FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (!GetFileTime(file_handle, NULL, NULL, &filetime))
+    {
+        DWORD error = GetLastError();
+        InvalidCodePath;
+    }
+    CloseHandle(file_handle);
+    
+    SYSTEMTIME system_time;
+    FileTimeToSystemTime(&filetime, &system_time);
+    result.second = system_time.wSecond;
+    result.minute = system_time.wMinute;
+    result.hour = system_time.wHour;
+    result.day = system_time.wDay;
+    result.month = system_time.wMonth;
+    result.year = system_time.wYear;
+
+    result.compare_value = ((u64)filetime.dwHighDateTime << 32) | filetime.dwLowDateTime;
+    
+    return result;
+}
+
 void* win32_allocate_memory(size_t size)
 {
 #if 0
@@ -404,6 +432,7 @@ void win32_init_platform_api(PlatformAPI* platform_api, size_t memory_size)
     platform_api->close_file_handle          = win32_close_file_handle;
     platform_api->read_whole_file            = win32_read_whole_file;
     platform_api->list_files                 = win32_list_files;
+    platform_api->get_file_last_write_time   = win32_get_file_last_write_time;
     platform_api->allocate_memory            = win32_allocate_memory;
     platform_api->deallocate_memory          = win32_deallocate_memory;
     platform_api->new_thread                 = win32_new_thread;
