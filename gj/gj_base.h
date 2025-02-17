@@ -482,6 +482,21 @@ typedef struct PlatformFileListing
     struct PlatformFileListing* next;
 } PlatformFileListing;
 
+typedef struct FileTime
+{
+    struct
+    {
+        u16 second;
+        u16 minute;
+        u16 hour;
+        u16 day;
+        u16 month;
+        u16 year;
+    };
+
+    u64 compare_value;
+} FileTime;
+
 typedef struct PlatformThreadContext
 {
     void (*thread_func)(void*);
@@ -509,6 +524,7 @@ typedef void                 WriteDataToFileHandle(PlatformFileHandle file_handl
 typedef void                 CloseFileHandle(PlatformFileHandle file_handle);
 typedef u32                  ReadWholeFile(const char* file_name, void* dst);
 typedef PlatformFileListing* ListFiles(void* memory, size_t memory_max_size, const char* file_name_pattern);
+typedef FileTime             GetFileLastWriteTime(const char* file_name);
 typedef void*                AllocateMemory(size_t size);
 typedef void                 DeallocateMemory(void* memory);
 typedef void                 NewThread(PlatformAPI* platform_api, PlatformThreadContext* thread_context);
@@ -569,6 +585,7 @@ typedef struct PlatformAPI
             CloseFileHandle*        close_file_handle;
             ReadWholeFile*          read_whole_file;
             ListFiles*              list_files;
+            GetFileLastWriteTime*   get_file_last_write_time;
             AllocateMemory*         allocate_memory;
             DeallocateMemory*       deallocate_memory;
             NewThread*              new_thread;
@@ -582,9 +599,9 @@ typedef struct PlatformAPI
         };
 
 #if GJ_DEBUG
-        u8 _os_api[14 * sizeof(GetFileHandle*)];
+        u8 _os_api[15 * sizeof(GetFileHandle*)];
 #else
-        u8 _os_api[13 * sizeof(GetFileHandle*)];
+        u8 _os_api[14 * sizeof(GetFileHandle*)];
 #endif
     };
 
