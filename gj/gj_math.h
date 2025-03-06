@@ -64,6 +64,7 @@ inline s32 gj_floor(f32 x)        { return (s32)floorf(x); }
 inline f32 gj_sin(f32 x)          { return sinf(x); }
 inline f32 gj_cos(f32 x)          { return cosf(x); }
 inline f32 gj_tan(f32 x)          { return tanf(x); }
+inline f32 gj_atan(f32 x)         { return atanf(x); }
 inline f32 gj_atan2(f32 x, f32 y) { return atan2f(x, y); }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -429,6 +430,21 @@ typedef union M4x4
     };
 } M4x4;
 
+V3f M4x4_get_x_row(M4x4 m)
+{
+    return {m._00, m._01, m._02};
+}
+
+V3f M4x4_get_y_row(M4x4 m)
+{
+    return {m._10, m._11, m._12};
+}
+
+V3f M4x4_get_z_row(M4x4 m)
+{
+    return {m._20, m._21, m._22};
+}
+
 inline M4x4 M4x4_identity()
 { M4x4 m; gj__ZeroStruct(m); m.a[0] = 1.0f; m.a[5] = 1.0f; m.a[10] = 1.0f; m.a[15] = 1.0f; return m; }
 
@@ -440,25 +456,25 @@ inline M4x4 M4x4_mul_M4x4(M4x4 m, M4x4 n)
 {
     M4x4 result = {};
     
-    result.m[0][0] = m.a[0]*n.a[0] + m.a[1]*n.a[4] + m.a[2]*n.a[8]  + m.a[3]*n.a[12];
-    result.m[0][1] = m.a[0]*n.a[1] + m.a[1]*n.a[5] + m.a[2]*n.a[9]  + m.a[3]*n.a[13];
-    result.m[0][2] = m.a[0]*n.a[2] + m.a[1]*n.a[6] + m.a[2]*n.a[10] + m.a[3]*n.a[14];
-    result.m[0][3] = m.a[0]*n.a[3] + m.a[1]*n.a[7] + m.a[2]*n.a[11] + m.a[3]*n.a[15];
+    result._00 = m._00 * n._00 + m._01 * n._10 + m._02 * n._20 + m._03 * n._30;
+    result._01 = m._00 * n._01 + m._01 * n._11 + m._02 * n._21 + m._03 * n._31;
+    result._02 = m._00 * n._02 + m._01 * n._12 + m._02 * n._22 + m._03 * n._32;
+    result._03 = m._00 * n._03 + m._01 * n._13 + m._02 * n._23 + m._03 * n._33;
 
-    result.m[1][0] = m.a[4]*n.a[0] + m.a[5]*n.a[4] + m.a[6]*n.a[8]  + m.a[7]*n.a[12];
-    result.m[1][1] = m.a[4]*n.a[1] + m.a[5]*n.a[5] + m.a[6]*n.a[9]  + m.a[7]*n.a[13];
-    result.m[1][2] = m.a[4]*n.a[2] + m.a[5]*n.a[6] + m.a[6]*n.a[10] + m.a[7]*n.a[14];
-    result.m[1][3] = m.a[4]*n.a[3] + m.a[5]*n.a[7] + m.a[6]*n.a[11] + m.a[7]*n.a[15];
+    result._10 = m._10 * n._00 + m._11 * n._10 + m._12 * n._20 + m._13 * n._30;
+    result._11 = m._10 * n._01 + m._11 * n._11 + m._12 * n._21 + m._13 * n._31;
+    result._12 = m._10 * n._02 + m._11 * n._12 + m._12 * n._22 + m._13 * n._32;
+    result._13 = m._10 * n._03 + m._11 * n._13 + m._12 * n._23 + m._13 * n._33;
 
-    result.m[2][0] = m.a[8]*n.a[0] + m.a[9]*n.a[4] + m.a[10]*n.a[8]  + m.a[11]*n.a[12];
-    result.m[2][1] = m.a[8]*n.a[1] + m.a[9]*n.a[5] + m.a[10]*n.a[9]  + m.a[11]*n.a[13];
-    result.m[2][2] = m.a[8]*n.a[2] + m.a[9]*n.a[6] + m.a[10]*n.a[10] + m.a[11]*n.a[14];
-    result.m[2][3] = m.a[8]*n.a[3] + m.a[9]*n.a[7] + m.a[10]*n.a[11] + m.a[11]*n.a[15];
+    result._20 = m._20 * n._00 + m._21 * n._10 + m._22 * n._20 + m._23 * n._30;
+    result._21 = m._20 * n._01 + m._21 * n._11 + m._22 * n._21 + m._23 * n._31;
+    result._22 = m._20 * n._02 + m._21 * n._12 + m._22 * n._22 + m._23 * n._32;
+    result._23 = m._20 * n._03 + m._21 * n._13 + m._22 * n._23 + m._23 * n._33;
 
-    result.m[3][0] = m.a[12]*n.a[0] + m.a[13]*n.a[4] + m.a[14]*n.a[8]  + m.a[15]*n.a[12];
-    result.m[3][1] = m.a[12]*n.a[1] + m.a[13]*n.a[5] + m.a[14]*n.a[9]  + m.a[15]*n.a[13];
-    result.m[3][2] = m.a[12]*n.a[2] + m.a[13]*n.a[6] + m.a[14]*n.a[10] + m.a[15]*n.a[14];
-    result.m[3][3] = m.a[12]*n.a[3] + m.a[13]*n.a[7] + m.a[14]*n.a[11] + m.a[15]*n.a[15];
+    result._30 = m._30 * n._00 + m._31 * n._10 + m._32 * n._20 + m._33 * n._30;
+    result._31 = m._30 * n._01 + m._31 * n._11 + m._32 * n._21 + m._33 * n._31;
+    result._32 = m._30 * n._02 + m._31 * n._12 + m._32 * n._22 + m._33 * n._32;
+    result._33 = m._30 * n._03 + m._31 * n._13 + m._32 * n._23 + m._33 * n._33;
 
     return result;
 }
@@ -493,11 +509,17 @@ inline V3f M4x4_mul_V3f(M4x4 m, V3f v)
 static inline M4x4
 M4x4_translation_matrix(V3f translation)
 {
+    /* M4x4 result = { */
+    /*     1.0f, 0.0f, 0.0f, translation.x, */
+    /*     0.0f, 1.0f, 0.0f, translation.y, */
+    /*     0.0f, 0.0f, 1.0f, translation.z, */
+    /*     0.0f, 0.0f, 0.0f, 1.0f */
+    /* }; */
     M4x4 result = {
-        1.0f, 0.0f, 0.0f, translation.x,
-        0.0f, 1.0f, 0.0f, translation.y,
-        0.0f, 0.0f, 1.0f, translation.z,
-        0.0f, 0.0f, 0.0f, 1.0f
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        translation.x, translation.y, translation.z, 1.0f
     };
     return result;
 }
@@ -628,38 +650,39 @@ M4x4 M4x4_model_view_matrix(V3f camera_pos, V3f camera_direction, V3f up, b32 tr
 #define M4x4_model_view_matrix(camera_pos, camera_direction, up) M4x4_model_view_matrix(camera_pos, camera_direction, up, true)
 #endif
 {
-    camera_direction = V3_normalize(camera_direction);
-    V3f camera_right = V3_normalize(V3_cross(up, camera_direction));
-    V3f camera_up = V3_normalize(V3_cross(camera_direction, camera_right));
+    V3f camera_z = V3_normalize(camera_direction);
+    V3f camera_x = V3_normalize(V3_cross(up, camera_z));
+    V3f camera_y = V3_normalize(V3_cross(camera_z, camera_x));
     M4x4 result = {
-        camera_right.x,     camera_right.y,     camera_right.z,     0.0f,
-        camera_up.x,        camera_up.y,        camera_up.z,        0.0f,
-        camera_direction.x, camera_direction.y, camera_direction.z, 0.0f,
-        0.0f,               0.0f,               0.0f,               1.0f
+        camera_x.x, camera_x.y, camera_x.z, 0.0f,
+        camera_y.x, camera_y.y, camera_y.z, 0.0f,
+        camera_z.x, camera_z.y, camera_z.z, 0.0f,
+        0.0f,       0.0f,       0.0f,       1.0f
     };
     if (translate)
     {
-        result.m[0][3] = -V3_dot(camera_right,     camera_pos);
-        result.m[1][3] = -V3_dot(camera_up,        camera_pos);
-        result.m[2][3] = -V3_dot(camera_direction, camera_pos);
+        result._03 = -V3_dot(camera_x, camera_pos);
+        result._13 = -V3_dot(camera_y, camera_pos);
+        result._23 = -V3_dot(camera_z, camera_pos);
     }
     return result;
 }
 
-M4x4 M4x4_inverse_model_view_matrix(M4x4 model_view_matrix, V3f camera_pos)
+M4x4 M4x4_inverse_model_view_matrix(M4x4 model_view_matrix)
 {
     M4x4 result = model_view_matrix;
-    result.m[0][3] = 0.0f; 
-    result.m[1][3] = 0.0f;
-    result.m[2][3] = 0.0f;
+    result._03 = 0.0f; 
+    result._13 = 0.0f;
+    result._23 = 0.0f;
 #if defined(__cplusplus)
     M4x4_apply_transpose(result);
 #else
     M4x4_apply_transpose(&result);
 #endif
-    result.m[0][3] = -model_view_matrix.m[0][3];
-    result.m[1][3] = -model_view_matrix.m[1][3];
-    result.m[2][3] = -model_view_matrix.m[2][3];
+    V3f t = {model_view_matrix._03, model_view_matrix._13, model_view_matrix._23};
+    result._03 = -V3_dot(t, M4x4_get_x_row(result));
+    result._13 = -V3_dot(t, M4x4_get_y_row(result));
+    result._23 = -V3_dot(t, M4x4_get_z_row(result));
     return result;
 }
 
@@ -700,9 +723,9 @@ M4x4 M4x4_projection_matrix(f32 field_of_view_degrees, f32 aspect_w_over_h,
     f32 t = gj_tan(field_of_view_degrees * DEG_TO_RAD / 2.0f);
     result._00 = 1.0f / t;
     result._11 = result._00 * aspect_w_over_h;
-    result._22 = -(far_plane + near_plane) / (far_plane - near_plane);
-    result._23 = -(2.0f * far_plane * near_plane) / (far_plane - near_plane);
-    result._32 = -1.0f;
+    result._22 = far_plane / (far_plane - near_plane);
+    result._23 = 1.0f;
+    result._32 = -near_plane * far_plane / (far_plane - near_plane);
     result._33 = 0.0f;
     return result;
 }
