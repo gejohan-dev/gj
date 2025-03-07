@@ -509,17 +509,11 @@ inline V3f M4x4_mul_V3f(M4x4 m, V3f v)
 static inline M4x4
 M4x4_translation_matrix(V3f translation)
 {
-    /* M4x4 result = { */
-    /*     1.0f, 0.0f, 0.0f, translation.x, */
-    /*     0.0f, 1.0f, 0.0f, translation.y, */
-    /*     0.0f, 0.0f, 1.0f, translation.z, */
-    /*     0.0f, 0.0f, 0.0f, 1.0f */
-    /* }; */
     M4x4 result = {
-        1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f,
-        translation.x, translation.y, translation.z, 1.0f
+        1.0f, 0.0f, 0.0f, translation.x,
+        0.0f, 1.0f, 0.0f, translation.y,
+        0.0f, 0.0f, 1.0f, translation.z,
+        0.0f, 0.0f, 0.0f, 1.0f
     };
     return result;
 }
@@ -724,8 +718,8 @@ M4x4 M4x4_projection_matrix(f32 field_of_view_degrees, f32 aspect_w_over_h,
     result._00 = 1.0f / t;
     result._11 = result._00 * aspect_w_over_h;
     result._22 = far_plane / (far_plane - near_plane);
-    result._23 = 1.0f;
-    result._32 = -near_plane * far_plane / (far_plane - near_plane);
+    result._23 = -far_plane * near_plane / (far_plane - near_plane);
+    result._32 = 1.0f;
     result._33 = 0.0f;
     return result;
 }
@@ -745,7 +739,7 @@ M4x4 M4x4_inverse_projection_matrix(M4x4 projection_matrix)
 #endif
     result._00 = 1.0f / projection_matrix._00;
     result._11 = 1.0f / projection_matrix._11;
-    result._23 = -1.0f;
+    result._23 = 1.0f;
     result._32 = 1.0f /projection_matrix._23;
     result._33 = projection_matrix._22 / projection_matrix._23;
     return result;
