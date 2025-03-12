@@ -1042,7 +1042,7 @@ V3f V3f_get_mouse_ray(M4x4 inverse_model_view_matrix, M4x4 inverse_projection_ma
     V3f result;
     V2f mouse_ndc;
     mouse_ndc.x = (2.0f * mouse_pos.x) / window_width - 1.0f;
-    mouse_ndc.y = 1.0f - (2.0f * mouse_pos.y) / window_height;
+    mouse_ndc.y = (2.0f * mouse_pos.y) / window_height - 1.0f;
     V4f mouse_eye = M4x4_mul(inverse_projection_matrix, V4f{mouse_ndc.x, mouse_ndc.y, 1.0f, 1.0f});
     mouse_eye.z = 1.0f;
     mouse_eye.w = 0.0f;
