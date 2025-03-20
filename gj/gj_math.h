@@ -209,6 +209,7 @@ inline f32 V3_distance   (V3f v0, V3f v1)             { return V3_length(V3_sub(
 inline b32 V3_equal      (V3f v0, V3f v1)             { return gj_float_eq(v0.x, v1.x) && gj_float_eq(v0.y, v1.y) && gj_float_eq(v0.z, v1.z); }
 
 inline V2f V3_xz(V3f v) { return {v.x, v.z}; }
+inline V4f V3_to_V4(V3f v, f32 w) { return {v.x, v.y, v.z, w}; }
 
 V3f V3_triangle_normal(V3f p1, V3f p2, V3f p3)
 {
@@ -272,6 +273,7 @@ bool V3_point_on_triangle(V3f p, V3f t1, V3f t2, V3f t3)
 }
 
 inline V4f V4_mul       (f32 c, V4f v0)  { V4f v; v.x = (c * v0.x); v.y = (c * v0.y); v.z = (c * v0.z);  v.w = (c * v0.w); return v; }
+inline V4f V4_mul       (V4f v0, f32 c)  { return V4_mul(c, v0); }
 inline f32 V4_length    (V4f v0)         { return gj_sqrt(v0.x * v0.x + v0.y * v0.y + v0.z * v0.z + v0.w * v0.w); }
 inline V4f V4_normalize (V4f v)
 {
@@ -635,6 +637,14 @@ M4x4_apply_scaling(M4x4* m, f32 scale)
     m->m[0][0] *= scale;
     m->m[1][1] *= scale;
     m->m[2][2] *= scale;
+}
+
+inline void
+M4x4_apply_scaling(M4x4* m, V3f scale)
+{
+    m->m[0][0] *= scale.x;
+    m->m[1][1] *= scale.y;
+    m->m[2][2] *= scale.z;
 }
 
 #if defined(__cplusplus)
