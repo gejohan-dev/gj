@@ -5,8 +5,12 @@
 // projects.
 //
 
+#include <string> // stod
 #include <cstring> // memset
 
+///////////////////////////////////////////////////////////////////////////
+// sprintf
+///////////////////////////////////////////////////////////////////////////
 #define STB_SPRINTF_IMPLEMENTATION
 #include <libs/stb/stb_sprintf.h> // string format
 int gj_sprintf(char* buffer, char* format, ...)
@@ -24,6 +28,14 @@ int gj_vsprintf(char* buffer, char* format, va_list args)
     int result;
     result = stbsp_vsprintf(buffer, format, args);
     return result;
+}
+
+///////////////////////////////////////////////////////////////////////////
+// stod
+///////////////////////////////////////////////////////////////////////////
+double gj_stod(char* str)
+{
+    return std::stod(str);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -175,6 +187,27 @@ inline b32 gj_strings_equal(const char* s1, const char* s2, s32 length)
     return length == 0;
 }
 
+inline b32 gj_string_contains(char* str, char* word)
+{
+    b32 result = false;
+    
+    u32 str_length = gj_string_length(str);
+    u32 word_length = gj_string_length(word);
+    
+    for (u32 str_index = 0;
+         str_index <= str_length - word_length;
+         str_index++)
+    {
+        if (gj_strings_equal(&str[str_index], word, word_length))
+        {
+            result = true;
+            break;
+        }
+    }
+
+    return result;
+}
+
 inline void gj_string_copy(char* dst, const char* src) { while (*src) { *dst++ = *src++; } }
 
 #pragma warning(suppress: 4505)
@@ -236,15 +269,19 @@ typedef struct GJParseNumber
     b32 ok;
     s32 number;
     s32 length;
+    double fraction;
+    s32 exponent;
 } GJParseNumber;
 
 #pragma warning(suppress: 4505)
 static GJParseNumber gj_parse_number(char* s)
 {
     GJParseNumber result;
-    result.ok     = gj_True;
-    result.number = 0;
-    result.length = 0;
+    result.ok       = gj_True;
+    result.number   = 0;
+    result.length   = 0;
+    result.fraction = 0;
+    result.exponent = 0;
 
     b32 neg = false;
     if (*s == '-')
@@ -269,6 +306,44 @@ static GJParseNumber gj_parse_number(char* s)
         }
     }
 
+    // TODO
+#if 0
+    if (*s == '.')
+    {
+        s++;
+        result.length++;
+        int current_power = 10;
+        while (gj_IsDigit(*s))
+        {
+            result.fraction += (double)gj_parse_digit(*s) / (double)current_power;
+            current_power *= 10;
+            s++;
+            result.length++;
+        }
+    }
+
+    if (*s == 'e' || *s == 'E')
+    {
+        s++;
+        result.length++;
+        s32 exp_sign = 1;
+        if (*s == '-')
+        {
+            exp_sign = -1;
+            s++;
+            result.length++;
+        }
+
+        while (gj_IsDigit(*s))
+        {
+            result.exponent *= 10;
+            result.exponent += gj_parse_digit(*s);
+            s++;
+            result.length++;
+        }
+    }
+#endif
+    
     result.number = neg ? -result.number : result.number;
     return result;
 }

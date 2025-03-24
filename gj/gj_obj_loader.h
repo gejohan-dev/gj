@@ -43,7 +43,7 @@ gj_obj_loader_skip_char(GJ_ObjLoader_ParseState* parse_state, char c)
 }
 
 static bool
-gj_obj_loader_check_current_word(GJ_ObjLoader_ParseState* parse_state, const char* str)
+gj_obj_loader_check_current_word(GJ_ObjLoader_ParseState* parse_state, const char* m_str)
 {
     bool result = true;
     gj_obj_loader_skip_whitespace(parse_state);
@@ -51,7 +51,7 @@ gj_obj_loader_check_current_word(GJ_ObjLoader_ParseState* parse_state, const cha
          char_index < parse_state->buffer_contents_size;
          char_index++)
     {
-        char str_char    = str[char_index - parse_state->buffer_index];
+        char str_char    = m_str[char_index - parse_state->buffer_index];
         char buffer_char = parse_state->buffer[char_index];
         if (gj_IsWhitespace(buffer_char))
         {
