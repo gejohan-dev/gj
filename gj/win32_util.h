@@ -181,6 +181,11 @@ void win32_load_dll(Win32HotLoadedDLL* dll)
         }
 
         dll->hmodule = LoadLibraryA(tmp_dll_path);
+        {
+            // TODO: Logging
+            int error = GetLastError();
+            brk;
+        }
         gj_Assert(dll->hmodule);
     }
 }
