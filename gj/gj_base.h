@@ -186,11 +186,11 @@ inline b32 gj_strings_equal_null_term(const char* s1, const char* s2)
 
 inline b32 gj_strings_equal(const char* s1, const char* s2, s32 length)
 {
-    while (*s1 && *s1 == *s2) { s1++; s2++; length--; }
+    while (*s1 == *s2) { s1++; s2++; length--; }
     return length == 0;
 }
 
-inline b32 gj_string_contains(char* str, char* word)
+inline b32 gj_string_contains(char* str, char* word, s32* index)
 {
     b32 result = false;
     
@@ -203,6 +203,7 @@ inline b32 gj_string_contains(char* str, char* word)
     {
         if (gj_strings_equal(&str[str_index], word, word_length))
         {
+            if (index) *index = str_index;
             result = true;
             break;
         }
@@ -210,6 +211,8 @@ inline b32 gj_string_contains(char* str, char* word)
 
     return result;
 }
+
+inline b32 gj_string_contains(char* str, char* word) { return gj_string_contains(str, word, NULL); }
 
 inline void gj_string_copy(char* dst, const char* src) { while (*src) { *dst++ = *src++; } }
 
@@ -616,6 +619,8 @@ typedef b32                  WaitForThreads(PlatformAPI* platform_api, PlatformT
 typedef ThreadStatus         CheckThreadStatus(PlatformThreadContext thread_context);
 typedef void                 BeginTicketMutex(TicketMutex* ticket_mutex);
 typedef void                 EndTicketMutex(TicketMutex* ticket_mutex);
+typedef void                 LogError(char* file, char* function, s32 line, char* format, ...);
+#define log_error(PlatformApi, Format, ...) do { PlatformApi##->log_error(__FILE__, __FUNCTION__, __LINE__, Format, __VA_ARGS__); } while (false)
 #if GJ_DEBUG
 typedef void                 DebugPrint(const char* format, ...);
 #endif
@@ -677,15 +682,16 @@ typedef struct PlatformAPI
             CheckThreadStatus*      check_thread_status;
             BeginTicketMutex*       begin_ticket_mutex;
             EndTicketMutex*         end_ticket_mutex;
+            LogError*               log_error;
 #if GJ_DEBUG
             DebugPrint*             debug_print;
 #endif
         };
 
 #if GJ_DEBUG
-        u8 _os_api[15 * sizeof(GetFileHandle*)];
+        u8 _os_api[16 * sizeof(GetFileHandle*)];
 #else
-        u8 _os_api[14 * sizeof(GetFileHandle*)];
+        u8 _os_api[15 * sizeof(GetFileHandle*)];
 #endif
     };
 
