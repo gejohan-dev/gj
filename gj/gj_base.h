@@ -168,6 +168,9 @@ inline void gj_unset_flag (u32* flags, u32 flag) { *flags &= ~(gj_BitmaskU32 & (
 inline b32  gj_get_flag   (u32 flags,  u32 flag) { return flags & (1 << flag); }
 inline void gj_toggle_flag(u32* flags, u32 flag) { *flags ^= (1 << flag); }
 
+///////////////////////////////////////////////////////////////////////////
+// String
+///////////////////////////////////////////////////////////////////////////
 inline u32 gj_string_length(char* s)
 {
     u32 result = 0;
@@ -363,6 +366,10 @@ static s32 gj_parse_word(const char* s, char* dst, int dst_size)
     return result;
 }
 
+///////////////////////////////////////////////////////////////////////////
+// Debugger
+///////////////////////////////////////////////////////////////////////////
+
 // Note: Add anywhere so that you can add breakpoint in Visual Studio before going out of scope e.g.
 // if (something)
 // {
@@ -399,20 +406,22 @@ static void gj_UnoptimizedLine() { }
 // Array
 ///////////////////////////////////////////////////////////////////////////
 #if defined(__cplusplus)
-#define __InArray(Type)                         \
+#define __InArray(Type, CompareFunction, Index) \
     b32 result = 0;                             \
-    for (Type i = 0; i < array_size; i++)       \
+    for (u32 i = 0; i < array_size; i++)        \
     {                                           \
-        if (array[i] == element)                \
+        if (CompareFunction(array[i], element)) \
         {                                       \
             result = 1;                         \
+            *Index = i;                         \
             break;                              \
         }                                       \
     }                                           \
     return result;
 
-inline b32
-gj_InArray(u32 element, u32* array, u32 array_size) { __InArray(u32); }
+inline b32 u32_equal(u32 x, u32 y) { return x == y; }
+inline b32 gj_InArray(u32 element, u32* array, u32 array_size, s32* index) { __InArray(u32, u32_equal, index); }
+inline b32 gj_InArray(char* element, char** array, u32 array_size, s32* index) { __InArray(char*, gj_strings_equal_null_term, index); }
 #endif
 
 ///////////////////////////////////////////////////////////////////////////
@@ -528,10 +537,10 @@ void* _push(MemoryArena* arena, size_t size, size_t alignment)
         array->data = (Type##*)push_size(memory_arena, max_count * sizeof(Type)); \
         array->count = 0;                                               \
         array->max_count = max_count;                                   \
-    }                                                           
+    }                                                                   
     
-gj_DefineArray(u32, U32Array);
-gj_DefineArray(s32, S32Array);
+gj_DefineArray(u32,   U32Array);
+gj_DefineArray(s32,   S32Array);
 ///////////////////////////////////////////////////////////////////////////
 // OS API
 ///////////////////////////////////////////////////////////////////////////
