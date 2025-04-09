@@ -207,6 +207,7 @@ inline V3f V3_cross      (V3f v0, V3f v1)             { V3f v; v.x = (v0.y * v1.
 inline V3f V3_neg        (V3f v)                      { return {-v.x, -v.y, -v.z}; }
 inline f32 V3_distance   (V3f v0, V3f v1)             { return V3_length(V3_sub(v0, v1)); }
 inline b32 V3_equal      (V3f v0, V3f v1)             { return gj_float_eq(v0.x, v1.x) && gj_float_eq(v0.y, v1.y) && gj_float_eq(v0.z, v1.z); }
+inline V3f V3_lerp       (V3f v0, V3f v1, f32 f)      { return {lerp(v0.x, v1.x, f), lerp(v0.y, v1.y, f), lerp(v0.z, v1.z, f)}; }
 
 inline V2f V3_xz(V3f v) { return {v.x, v.z}; }
 inline V4f V3_to_V4(V3f v, f32 w) { return {v.x, v.y, v.z, w}; }

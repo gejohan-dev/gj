@@ -9,36 +9,6 @@
 #include <cstring> // memset
 
 ///////////////////////////////////////////////////////////////////////////
-// sprintf
-///////////////////////////////////////////////////////////////////////////
-#define STB_SPRINTF_IMPLEMENTATION
-#include <libs/stb/stb_sprintf.h> // string format
-int gj_sprintf(char* buffer, char* format, ...)
-{
-    int result;
-    va_list args;
-    va_start(args, format);
-    result = stbsp_vsprintf(buffer, format, args);
-    va_end(args);
-    return result;
-}
-
-int gj_vsprintf(char* buffer, char* format, va_list args)
-{
-    int result;
-    result = stbsp_vsprintf(buffer, format, args);
-    return result;
-}
-
-///////////////////////////////////////////////////////////////////////////
-// stod
-///////////////////////////////////////////////////////////////////////////
-double gj_stod(char* str)
-{
-    return std::stod(str);
-}
-
-///////////////////////////////////////////////////////////////////////////
 // Types
 ///////////////////////////////////////////////////////////////////////////
 #include <stdint.h>
@@ -66,6 +36,46 @@ typedef u8 one_byte;
 
 #define gj_True  1
 #define gj_False 0
+
+///////////////////////////////////////////////////////////////////////////
+// sprintf
+///////////////////////////////////////////////////////////////////////////
+#define STB_SPRINTF_IMPLEMENTATION
+#include <libs/stb/stb_sprintf.h> // string format
+int gj_sprintf(char* buffer, char* format, ...)
+{
+    int result;
+    va_list args;
+    va_start(args, format);
+    result = stbsp_vsprintf(buffer, format, args);
+    va_end(args);
+    return result;
+}
+
+int gj_snprintf(char* buffer, u64 buffer_size, char* format, ...)
+{
+    int result;
+    va_list args;
+    va_start(args, format);
+    result = stbsp_vsnprintf(buffer, buffer_size, format, args);
+    va_end(args);
+    return result;
+}
+
+int gj_vsprintf(char* buffer, char* format, va_list args)
+{
+    int result;
+    result = stbsp_vsprintf(buffer, format, args);
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////
+// stod
+///////////////////////////////////////////////////////////////////////////
+double gj_stod(char* str)
+{
+    return std::stod(str);
+}
 
 ///////////////////////////////////////////////////////////////////////////
 // Util
@@ -416,7 +426,7 @@ static void gj_UnoptimizedLine() { }
         if (CompareFunction(array[i], element)) \
         {                                       \
             result = 1;                         \
-            *Index = i;                         \
+            if (Index) *Index = i;              \
             break;                              \
         }                                       \
     }                                           \
@@ -425,6 +435,7 @@ static void gj_UnoptimizedLine() { }
 inline b32 u32_equal(u32 x, u32 y) { return x == y; }
 inline b32 gj_InArray(u32 element, u32* array, u32 array_size, s32* index) { __InArray(u32, u32_equal, index); }
 inline b32 gj_InArray(char* element, char** array, u32 array_size, s32* index) { __InArray(char*, gj_strings_equal_null_term, index); }
+inline b32 gj_InArray(char* element, char** array, u32 array_size) { s32* _ignore = NULL; __InArray(char*, gj_strings_equal_null_term, _ignore); }
 #endif
 
 ///////////////////////////////////////////////////////////////////////////
