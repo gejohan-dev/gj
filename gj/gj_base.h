@@ -631,10 +631,13 @@ typedef ThreadStatus         CheckThreadStatus(PlatformThreadContext thread_cont
 typedef void                 BeginTicketMutex(TicketMutex* ticket_mutex);
 typedef void                 EndTicketMutex(TicketMutex* ticket_mutex);
 typedef void                 LogError(char* file, char* function, s32 line, char* format, ...);
-#define log_error(PlatformApi, Format, ...) do { PlatformApi##->log_error(__FILE__, __FUNCTION__, __LINE__, Format, __VA_ARGS__); } while (false)
+typedef void                 LogInfo(char* file, char* function, s32 line, char* format, ...);
 #if GJ_DEBUG
 typedef void                 DebugPrint(const char* format, ...);
 #endif
+
+#define log_error(PlatformApi, Format, ...) do { PlatformApi##->log_error(__FILE__, __FUNCTION__, __LINE__, Format, __VA_ARGS__); } while (false)
+#define log_info(PlatformApi, Format, ...) do { PlatformApi##->log_info(__FILE__, __FUNCTION__, __LINE__, Format, __VA_ARGS__); } while (false)
 
 ///////////////////////////////////////////////////////////////////////////
 // Audio API
@@ -694,15 +697,16 @@ typedef struct PlatformAPI
             BeginTicketMutex*       begin_ticket_mutex;
             EndTicketMutex*         end_ticket_mutex;
             LogError*               log_error;
+            LogInfo*                log_info;
 #if GJ_DEBUG
             DebugPrint*             debug_print;
 #endif
         };
 
 #if GJ_DEBUG
-        u8 _os_api[16 * sizeof(GetFileHandle*)];
+        u8 _os_api[17 * sizeof(GetFileHandle*)];
 #else
-        u8 _os_api[15 * sizeof(GetFileHandle*)];
+        u8 _os_api[16 * sizeof(GetFileHandle*)];
 #endif
     };
 

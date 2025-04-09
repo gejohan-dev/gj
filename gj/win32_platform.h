@@ -343,6 +343,19 @@ void win32_log_error(char* file, char* function, s32 line, char* format, ...)
     OutputDebugStringA(buffer2);
 }
 
+void win32_log_info(char* file, char* function, s32 line, char* format, ...)
+{
+    va_list varargs;
+    va_start(varargs, format);
+    char buffer[BUFFER_SIZE * 2];
+    stbsp_vsnprintf(buffer, sizeof(buffer), format, varargs);
+    va_end(varargs);
+
+    char buffer2[BUFFER_SIZE * 4];
+    stbsp_snprintf(buffer2, sizeof(buffer2), "Info %s:%s %d %s\n", file, function, line, buffer);
+    OutputDebugStringA(buffer2);
+}
+
 void win32_debug_print(const char* format, ...)
 {
     va_list varargs;
@@ -455,6 +468,7 @@ void win32_init_platform_api(PlatformAPI* platform_api, size_t memory_size)
     platform_api->begin_ticket_mutex         = win32_begin_ticket_mutex;
     platform_api->end_ticket_mutex           = win32_end_ticket_mutex;
     platform_api->log_error                  = win32_log_error;
+    platform_api->log_info                   = win32_log_info;
 #if GJ_DEBUG
     platform_api->debug_print                = win32_debug_print;
 #endif
