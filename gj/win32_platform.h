@@ -209,6 +209,12 @@ FileTime win32_get_file_last_write_time(const char* file_name)
     return result;
 }
 
+b32 win32_check_file_exists(const char* file_name)
+{
+    DWORD attributes = GetFileAttributes(file_name);
+    return (attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY));
+}
+
 void* win32_allocate_memory(size_t size)
 {
 #if 0
@@ -460,6 +466,7 @@ void win32_init_platform_api(PlatformAPI* platform_api, size_t memory_size)
     platform_api->read_whole_file            = win32_read_whole_file;
     platform_api->list_files                 = win32_list_files;
     platform_api->get_file_last_write_time   = win32_get_file_last_write_time;
+    platform_api->check_file_exists          = win32_check_file_exists;
     platform_api->allocate_memory            = win32_allocate_memory;
     platform_api->deallocate_memory          = win32_deallocate_memory;
     platform_api->new_thread                 = win32_new_thread;

@@ -866,11 +866,6 @@ V4f Quat_create(V3f axis, f32 angle_radians)
     return result;
 }
 
-V4f Quat_create(V3f point)
-{
-    return Quat_create(point, 0);
-}
-
 V4f Quat_from_rotation_matrix(M4x4 m)
 {
     V4f result;
@@ -924,7 +919,7 @@ M4x4 Quat_to_rotation_matrix(V4f q)
     f32 _2wy = 2.0f * q.qw * q.qy;
     M4x4 result = {
         1.0f - _2yy - _2zz, _2xy - _2wz,        _2xz + _2wy,        0.0f,
-        _2xy + _2wz,        1.0f - _2xx - _2zz, _2yz - _2wz,        0.0f,
+        _2xy + _2wz,        1.0f - _2xx - _2zz, _2yz - _2wx,        0.0f,
         _2xz - _2wy,        _2yz + _2wx,        1.0f - _2xx - _2yy, 0.0f,
         0.0f,               0.0f,               0.0f,               1.0f};
     return result;
@@ -967,9 +962,9 @@ V4f Quat_exp(V4f q, f32 exp)
         f32 na = a * exp;
         result.w = gj_cos(na);
         f32 m = gj_sin(na) / gj_sin(a);
-        result.x *= m;
-        result.y *= m;
-        result.z *= m;
+        result.qx *= m;
+        result.qy *= m;
+        result.qz *= m;
     }
     else
     {

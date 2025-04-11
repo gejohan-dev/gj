@@ -623,6 +623,7 @@ typedef void                 CloseFileHandle(PlatformFileHandle file_handle);
 typedef u32                  ReadWholeFile(const char* file_name, void* dst);
 typedef PlatformFileListing* ListFiles(void* memory, size_t memory_max_size, const char* file_name_pattern);
 typedef FileTime             GetFileLastWriteTime(const char* file_name);
+typedef b32                  CheckFileExists(const char* file_name);
 typedef void*                AllocateMemory(size_t size);
 typedef void                 DeallocateMemory(void* memory);
 typedef void                 NewThread(PlatformAPI* platform_api, PlatformThreadContext* thread_context);
@@ -689,6 +690,7 @@ typedef struct PlatformAPI
             ReadWholeFile*          read_whole_file;
             ListFiles*              list_files;
             GetFileLastWriteTime*   get_file_last_write_time;
+            CheckFileExists*        check_file_exists;
             AllocateMemory*         allocate_memory;
             DeallocateMemory*       deallocate_memory;
             NewThread*              new_thread;
@@ -704,9 +706,9 @@ typedef struct PlatformAPI
         };
 
 #if GJ_DEBUG
-        u8 _os_api[17 * sizeof(GetFileHandle*)];
+        u8 _os_api[18 * sizeof(GetFileHandle*)];
 #else
-        u8 _os_api[16 * sizeof(GetFileHandle*)];
+        u8 _os_api[17 * sizeof(GetFileHandle*)];
 #endif
     };
 
