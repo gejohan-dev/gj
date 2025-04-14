@@ -866,6 +866,16 @@ V4f Quat_create(V3f axis, f32 angle_radians)
     return result;
 }
 
+V4f Quat_identity()
+{
+    V4f result;
+    result.qx = 0.0f;
+    result.qy = 0.0f;
+    result.qz = 0.0f;
+    result.qw = 1.0f;
+    return result;
+}
+
 V4f Quat_from_rotation_matrix(M4x4 m)
 {
     V4f result;
