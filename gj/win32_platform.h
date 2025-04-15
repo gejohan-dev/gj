@@ -71,7 +71,7 @@ PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
     // TODO: Add FILE_FLAG_SEQUENTIAL_SCAN to dwFlagsAndAttributes since most of the time
     //       the app will just read the file top-to-bottom?
     *(HANDLE*)&result.handle = CreateFileA(result.full_file_name, handle_permissions,
-                                           FILE_SHARE_READ, 0, handle_creation, FILE_ATTRIBUTE_NORMAL, 0);
+                                           FILE_SHARE_READ | FILE_SHARE_WRITE, 0, handle_creation, FILE_ATTRIBUTE_NORMAL, 0);
 
     if (result.handle == INVALID_HANDLE_VALUE)
     {
