@@ -96,6 +96,7 @@ V3(f, f32);
         struct { type x;  type y;  type z;  type w; };  \
         struct { type r;  type g;  type b;  type a; };  \
         struct { type qw; type qx; type qy; type qz; }; \
+        type array[4];                                  \
         type xyz[3];                                    \
         V3##name v3;                                    \
         V2##name v2;                                    \
