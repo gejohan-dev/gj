@@ -41,9 +41,9 @@ inline b32 gj_float_leq(f32 x, f32 y, f32 eps = GJ_FLOAT_EPS) { return x < y || 
 // x >= y
 inline b32 gj_float_geq(f32 x, f32 y, f32 eps = GJ_FLOAT_EPS) { return x > y || gj_float_eq(x, y, eps); }
 
-inline f32 clamp(f32 min, f32 value, f32 max) { return value < min ? min : (value > max ? max : value); }
-inline f32 lerp(f32 a, f32 b, f32 x) { return (1.0f - x) * a + x * b; }
-inline f32 normalize(f32 a, f32 b, f32 x) { return gj_Min(1.0f, gj_Max(0.0f, (x - a) / (b - a))); }
+inline f32 gj_clamp(f32 min, f32 value, f32 max) { return value < min ? min : (value > max ? max : value); }
+inline f32 gj_lerp(f32 a, f32 b, f32 x) { return (1.0f - x) * a + x * b; }
+inline f32 gj_normalize(f32 a, f32 b, f32 x) { return gj_Min(1.0f, gj_Max(0.0f, (x - a) / (b - a))); }
 
 #if defined(__cplusplus)
 inline b32 unknown_bounds_check(f32 x, f32 a, f32 b) { return x >= gj_Min(a, b) && x < gj_Max(a, b); }
@@ -208,7 +208,7 @@ inline V3f V3_cross      (V3f v0, V3f v1)             { V3f v; v.x = (v0.y * v1.
 inline V3f V3_neg        (V3f v)                      { return {-v.x, -v.y, -v.z}; }
 inline f32 V3_distance   (V3f v0, V3f v1)             { return V3_length(V3_sub(v0, v1)); }
 inline b32 V3_equal      (V3f v0, V3f v1)             { return gj_float_eq(v0.x, v1.x) && gj_float_eq(v0.y, v1.y) && gj_float_eq(v0.z, v1.z); }
-inline V3f V3_lerp       (V3f v0, V3f v1, f32 f)      { return {lerp(v0.x, v1.x, f), lerp(v0.y, v1.y, f), lerp(v0.z, v1.z, f)}; }
+inline V3f V3_lerp       (V3f v0, V3f v1, f32 f)      { return {gj_lerp(v0.x, v1.x, f), gj_lerp(v0.y, v1.y, f), gj_lerp(v0.z, v1.z, f)}; }
 
 inline V2f V3_xz(V3f v) { return {v.x, v.z}; }
 inline V4f V3_to_V4(V3f v, f32 w) { return {v.x, v.y, v.z, w}; }
