@@ -336,6 +336,13 @@ HANDLE win32_get_stdout_handle()
     return result;
 }
 
+static HANDLE g_stdout_handle = NULL;
+void _write_to_stdout(char* buffer, u64 buffer_size)
+{
+    if (!g_stdout_handle) g_stdout_handle = win32_get_stdout_handle();
+    WriteFile(g_stdout_handle, buffer, buffer_size, NULL, NULL);
+}
+
 void win32_log_error(char* file, char* function, s32 line, char* format, ...)
 {
     va_list varargs;
@@ -345,8 +352,8 @@ void win32_log_error(char* file, char* function, s32 line, char* format, ...)
     va_end(varargs);
 
     char buffer2[BUFFER_SIZE * 4];
-    stbsp_snprintf(buffer2, sizeof(buffer2), "Error in %s:%s %d %s\n", file, function, line, buffer);
-    OutputDebugStringA(buffer2);
+    u64 buffer2_size = stbsp_snprintf(buffer2, sizeof(buffer2), "Error in %s:%s %d %s\n", file, function, line, buffer);
+    _write_to_stdout(buffer2, buffer2_size);
 }
 
 void win32_log_info(char* file, char* function, s32 line, char* format, ...)
@@ -358,8 +365,8 @@ void win32_log_info(char* file, char* function, s32 line, char* format, ...)
     va_end(varargs);
 
     char buffer2[BUFFER_SIZE * 4];
-    stbsp_snprintf(buffer2, sizeof(buffer2), "Info %s:%s %d %s\n", file, function, line, buffer);
-    OutputDebugStringA(buffer2);
+    u64 buffer2_size = stbsp_snprintf(buffer2, sizeof(buffer2), "Info %s:%s %d %s\n", file, function, line, buffer);
+    _write_to_stdout(buffer2, buffer2_size);
 }
 
 void win32_debug_print(const char* format, ...)
@@ -367,8 +374,8 @@ void win32_debug_print(const char* format, ...)
     va_list varargs;
     va_start(varargs, format);
     char buffer[BUFFER_SIZE];
-    stbsp_vsprintf(buffer, format, varargs);
-    OutputDebugStringA(buffer);
+    u64 buffer_size = stbsp_vsprintf(buffer, format, varargs);
+    _write_to_stdout(buffer, buffer_size);
     va_end(varargs);
 }
 
