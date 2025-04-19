@@ -337,10 +337,14 @@ HANDLE win32_get_stdout_handle()
 }
 
 static HANDLE g_stdout_handle = NULL;
+static PlatformFileHandle g_log_file_handle = {};
 void _write_to_stdout(char* buffer, u64 buffer_size)
 {
     if (!g_stdout_handle) g_stdout_handle = win32_get_stdout_handle();
+    if (!g_log_file_handle.handle) g_log_file_handle = win32_get_file_handle("logs", PlatformOpenFileModeFlags_Write);
     WriteFile(g_stdout_handle, buffer, buffer_size, NULL, NULL);
+    win32_write_data_to_file_handle(g_log_file_handle, g_log_file_handle.file_size, buffer_size, buffer);
+    g_log_file_handle.file_size += buffer_size;
 }
 
 void win32_log_error(char* file, char* function, s32 line, char* format, ...)
