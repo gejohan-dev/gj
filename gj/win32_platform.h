@@ -343,6 +343,10 @@ void _write_to_stdout(char* buffer, u64 buffer_size)
     if (!g_stdout_handle) g_stdout_handle = win32_get_stdout_handle();
     if (!g_log_file_handle.handle) g_log_file_handle = win32_get_file_handle("logs", PlatformOpenFileModeFlags_Write);
     WriteFile(g_stdout_handle, buffer, buffer_size, NULL, NULL);
+    if (g_log_file_handle.file_size > Megabytes(1))
+    {
+        g_log_file_handle.file_size = 0;
+    }
     win32_write_data_to_file_handle(g_log_file_handle, g_log_file_handle.file_size, buffer_size, buffer);
     g_log_file_handle.file_size += buffer_size;
 }

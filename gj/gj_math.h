@@ -757,50 +757,21 @@ M4x4 M4x4_inverse_projection_matrix(M4x4 projection_matrix)
     return result;
 }
 
-/* M4x4 M4x4_orthographic_matrix(f32 aspect_w_over_h, f32 near_plane, f32 far_plane) */
-M4x4 M4x4_orthographic_matrix(f32 l, f32 r, f32 t, f32 b, f32 n, f32 f)
-/* M4x4 M4x4_orthographic_matrix(f32 width, f32 height, f32 near_plane, f32 far_plane) */
+M4x4 M4x4_orthographic_matrix(f32 left, f32 right, f32 bottom, f32 top, f32 near_plane, f32 far_plane)
 {
     M4x4 result = M4x4_identity();
-#if 0
-    result.m[1][1] = aspect_w_over_h;
-    result.m[2][2] = 2.0f / (near_plane - far_plane);
-    result.m[2][3] = (near_plane + far_plane) / (near_plane - far_plane);
-#elif 0
-    result._00 =  2.0f / width;
-    result._03 = -1.0f;
-    result._11 =  2.0f / height;
-    result._13 = -1.0f;
-    result._22 = -2.0f / (far_plane - near_plane);
-    result._23 = -(far_plane + near_plane) / (far_plane - near_plane);
-#elif 0
-    result._00 = 2.0f / width;
-    result._03 = -1.0f;
-    result._11 = 2.0f / height;
-    result._13 = -1.0f;
-    result._22 = 1.0f / (near_plane - far_plane);
-    result._32 = near_plane / (near_plane - far_plane);
-#elif 1
-    result.m[0][0] = 2 / (r - l);
-    result.m[0][1] = 0;
-    result.m[0][2] = 0;
-    result.m[0][3] = 0;
+    
+    result._00 = 2.0f / (right - left);
+    result._11 = 2.0f / (top - bottom);
+    result._22 = 1.0f / (far_plane - near_plane);
+    
+    result._03 = -(right + left) / (right - left);
+    result._13 = -(top + bottom) / (top - bottom);
+    result._23 = -near_plane / (far_plane - near_plane);
 
-    result.m[1][0] = 0;
-    result.m[1][1] = 2 / (t - b);
-    result.m[1][2] = 0;
-    result.m[1][3] = 0;
+    result._32 = 1.0f;   // Just like the perspective version
+    result._33 = 0.0f;   // Keeps result in homogeneous clip space
 
-    result.m[2][0] = 0;
-    result.m[2][1] = 0;
-    result.m[2][2] = -2 / (f - n);
-    result.m[2][3] = 0;
-
-    result.m[3][0] = -(r + l) / (r - l);
-    result.m[3][1] = -(t + b) / (t - b);
-    result.m[3][2] = -(f + n) / (f - n);
-    result.m[3][3] = 1;
-#endif
     return result;
 }
 
@@ -1166,6 +1137,7 @@ grid_get_cell_coord(V2f pos, f32 cell_width, f32 cell_height)
 ///////////////////////////////////////////////////////////////////////////
 // Random Number Generation
 ///////////////////////////////////////////////////////////////////////////
+inline s32 gj_rand() { return rand(); };
 struct RandomSeries
 {
     u32 a;

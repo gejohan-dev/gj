@@ -637,9 +637,6 @@ typedef void                 LogInfo(char* file, char* function, s32 line, char*
 typedef void                 DebugPrint(const char* format, ...);
 #endif
 
-#define log_error(PlatformApi, Format, ...) do { PlatformApi##->log_error(__FILE__, __FUNCTION__, __LINE__, Format, __VA_ARGS__); } while (false)
-#define log_info(PlatformApi, Format, ...) do { PlatformApi##->log_info(__FILE__, __FUNCTION__, __LINE__, Format, __VA_ARGS__); } while (false)
-
 ///////////////////////////////////////////////////////////////////////////
 // Audio API
 ///////////////////////////////////////////////////////////////////////////
