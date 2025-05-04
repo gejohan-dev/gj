@@ -34,7 +34,7 @@ struct Win32DX11
 #endif
 };
 
-static inline void
+static inline bool
 D3D11_compile_shader(const void* shader_file_contents,
                      const size_t shader_file_contents_size,
                      const char* shader_name,
@@ -44,6 +44,8 @@ D3D11_compile_shader(const void* shader_file_contents,
                      ID3DBlob** shader_blob,
                      ID3DBlob** error_messages)
 {
+    bool result = true;
+    
     HRESULT hr = D3DCompile(
         shader_file_contents,
         shader_file_contents_size,
@@ -63,8 +65,11 @@ D3D11_compile_shader(const void* shader_file_contents,
     if (*error_messages)
     {
         OutputDebugStringA((char*)(*error_messages)->GetBufferPointer());
+        result = false;
     }
     gj_AssertHR(hr);
+
+    return result;
 }
 
 static void
