@@ -196,7 +196,7 @@ inline b32 gj_strings_equal_null_term(const char* s1, const char* s2)
 
 inline b32 gj_strings_equal(const char* s1, const char* s2, s32 length)
 {
-    while (*s1 == *s2) { s1++; s2++; length--; }
+    while (*s1 == *s2 && length > 0) { s1++; s2++; length--; }
     return length == 0;
 }
 
