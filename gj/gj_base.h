@@ -650,7 +650,7 @@ typedef struct SoundBuffer
 
 typedef u32         GetMaxQueuedSoundBuffers();
 typedef u32         QueuedSoundBuffers();
-typedef SoundBuffer CreatesoundBuffer(PlatformAPI* platform_api, uint32_t sample_count);
+typedef SoundBuffer CreatesoundBuffer(uint32_t sample_count);
 typedef void        SubmitSoundBuffer(SoundBuffer sound_buffer);
 typedef u32         GetRemainingSamples(SoundBuffer sound_buffer);
 

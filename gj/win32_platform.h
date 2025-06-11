@@ -401,6 +401,55 @@ typedef struct Win32XAudio2
 
 global_variable Win32XAudio2 g_win32_xaudio2;
 
+///////////////////////////////////////////////////////////////////////////
+// XAudio2 Implementation
+///////////////////////////////////////////////////////////////////////////
+void xaudio2_init()
+{
+    HRESULT hr;
+
+    // COM
+    {
+        hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+        gj_AssertDebug(SUCCEEDED(hr));
+    }
+        
+    {
+        uint32_t flags = 0;
+#if WALK_PUZZLE_DEBUG
+        flags |= XAUDIO2_DEBUG_ENGINE;
+#endif
+        g_win32_xaudio2.context = NULL;
+        hr = XAudio2Create(&g_win32_xaudio2.context, flags);
+        gj_AssertDebug(SUCCEEDED(hr));
+    }
+
+    {
+        g_win32_xaudio2.mastering_voice = NULL;
+        hr = g_win32_xaudio2.context->CreateMasteringVoice(&g_win32_xaudio2.mastering_voice);
+        gj_AssertDebug(SUCCEEDED(hr));
+    }
+
+    g_win32_xaudio2.wave_format_ext = {};
+    g_win32_xaudio2.wave_format_ext.wFormatTag      = WAVE_FORMAT_PCM;
+    g_win32_xaudio2.wave_format_ext.nChannels       = 2;
+    g_win32_xaudio2.wave_format_ext.nSamplesPerSec  = 48000;
+    g_win32_xaudio2.wave_format_ext.wBitsPerSample  = 16;
+    g_win32_xaudio2.wave_format_ext.cbSize          = 0;
+        
+    g_win32_xaudio2.wave_format_ext.nBlockAlign     = (g_win32_xaudio2.wave_format_ext.nChannels * g_win32_xaudio2.wave_format_ext.wBitsPerSample) / 8;
+    g_win32_xaudio2.wave_format_ext.nAvgBytesPerSec = g_win32_xaudio2.wave_format_ext.nSamplesPerSec * g_win32_xaudio2.wave_format_ext.nBlockAlign;
+
+    {
+        hr = g_win32_xaudio2.context->CreateSourceVoice(&g_win32_xaudio2.source_voice, &g_win32_xaudio2.wave_format_ext);
+        gj_AssertDebug(SUCCEEDED(hr));
+        hr = g_win32_xaudio2.source_voice->SetVolume(1.0f, XAUDIO2_COMMIT_NOW);
+        gj_AssertDebug(SUCCEEDED(hr));
+        hr = g_win32_xaudio2.source_voice->Start(0, XAUDIO2_COMMIT_NOW);
+        gj_AssertDebug(SUCCEEDED(hr));
+    }
+}
+
 u32 win32_get_max_queued_sound_buffers()
 {
     return XAUDIO2_MAX_QUEUED_BUFFERS;
@@ -419,16 +468,16 @@ u32 win32_queued_sound_buffers()
     return result;
 }
 
-SoundBuffer win32_create_sound_buffer(PlatformAPI* platform_api, uint32_t sample_count)
+SoundBuffer win32_create_sound_buffer(uint32_t sample_count)
 {
     SoundBuffer result;
     
     size_t buffer_size = (sizeof(int16_t) * sample_count * g_win32_xaudio2.wave_format_ext.nChannels);
-    result.buffer = (int16_t*)platform_api->allocate_memory(buffer_size);
+    result.buffer = (int16_t*)win32_allocate_memory(buffer_size);
     result.buffer_size = buffer_size;
     result.count  = sample_count;
 
-    result.platform = platform_api->allocate_memory(sizeof(XAUDIO2_BUFFER));
+    result.platform = win32_allocate_memory(sizeof(XAUDIO2_BUFFER));
     XAUDIO2_BUFFER* xaudio2_buffer = (XAUDIO2_BUFFER*)result.platform;
     xaudio2_buffer->Flags      = 0;
     // TODO: Ensure safe assignment
