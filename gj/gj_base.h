@@ -179,6 +179,59 @@ inline b32  gj_get_flag   (u32 flags,  u32 flag) { return flags & (1 << flag); }
 inline void gj_toggle_flag(u32* flags, u32 flag) { *flags ^= (1 << flag); }
 
 ///////////////////////////////////////////////////////////////////////////
+// TimedBlock
+///////////////////////////////////////////////////////////////////////////
+#if defined(GJ_DEBUG)
+
+#define DEBUG_NAME__(A, B, C) A "|" #B "|" #C
+#define DEBUG_NAME_(A, B, C) DEBUG_NAME__(A, B, C)
+#define DEBUG_NAME(Name) DEBUG_NAME_(__FILE__, __LINE__, __COUNTER__)
+
+struct TimedBlock
+{
+    char* guid;
+    
+    u64 clock;
+    u64 sum;
+    u64 count;
+    
+    TimedBlock(char* guid, char* Name)
+    {
+        clock = __rdtsc();
+        count++;
+    }
+    
+    ~TimedBlock()
+    {
+        sum += __rdtsc() - clock;
+    }
+};
+
+global_variable TimedBlock g_timed_blocks[100];
+
+#define TIMED_BLOCK(Name)                                               \
+    do {                                                                \
+        TimedBlock timed_block = TimedBlock(DEBUG_NAME(Name), Name);    \
+        s32 i;                                                          \
+        b32 found = false;                                              \
+        for (i = 0; i < gj_ArrayCount(g_timed_blocks); i++)             \
+        {                                                               \
+            if (strcmp(g_timed_blocks[i].guid, timed_block.guid) == 0)  \
+            {                                                           \
+                found = true;                                           \
+                break;                                                  \
+            }                                                           \
+        }                                                               \
+                                                                        \
+        if (found)                                                      \
+        {                                                               \
+            g_timed_blocks[i]                                         \
+        }                                                               \
+    } while (false)
+
+#endif
+
+///////////////////////////////////////////////////////////////////////////
 // String
 ///////////////////////////////////////////////////////////////////////////
 inline u32 gj_string_length(char* s)
