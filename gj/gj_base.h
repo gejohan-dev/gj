@@ -7,6 +7,7 @@
 
 #include <string> // stod
 #include <cstring> // memset
+#include <intrin.h>
 
 ///////////////////////////////////////////////////////////////////////////
 // Types
@@ -194,11 +195,15 @@ struct TimedBlock
     u64 clock;
     u64 sum;
     u64 count;
+
+    TimedBlock()
+    {
+    }
     
     TimedBlock(char* guid, char* Name)
     {
-        clock = __rdtsc();
-        count++;
+        sum   = 0;
+        count = 0;
     }
     
     ~TimedBlock()
@@ -225,7 +230,8 @@ global_variable TimedBlock g_timed_blocks[100];
                                                                         \
         if (found)                                                      \
         {                                                               \
-            g_timed_blocks[i]                                         \
+            g_timed_blocks[i].clock = __rdtsc();                        \
+            g_timed_blocks[i].count++;                                  \
         }                                                               \
     } while (false)
 
@@ -699,13 +705,14 @@ typedef struct SoundBuffer
     size_t buffer_size;
     uint32_t count;
     void* platform;
+
+    u32 play_begin_in_samples;
+    u32 play_length_in_samples;
+    f32 volume;
 } SoundBuffer;
 
-typedef u32         GetMaxQueuedSoundBuffers();
-typedef u32         QueuedSoundBuffers();
 typedef SoundBuffer CreatesoundBuffer(uint32_t sample_count);
 typedef void        SubmitSoundBuffer(SoundBuffer sound_buffer);
-typedef u32         GetRemainingSamples(SoundBuffer sound_buffer);
 
 ///////////////////////////////////////////////////////////////////////////
 // PlatformAPI
@@ -765,11 +772,8 @@ typedef struct PlatformAPI
     //
     // Audio API
     //
-    GetMaxQueuedSoundBuffers* get_max_queued_sound_buffers;
-    QueuedSoundBuffers*       queued_sound_buffers;
     CreatesoundBuffer*        create_sound_buffer;
     SubmitSoundBuffer*        submit_sound_buffer;
-    GetRemainingSamples*      get_remaining_samples;
 
     //
     // Memory

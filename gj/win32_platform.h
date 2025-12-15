@@ -396,8 +396,13 @@ typedef struct Win32XAudio2
     IXAudio2* context;
     IXAudio2MasteringVoice* mastering_voice;
     WAVEFORMATEX wave_format_ext;
-    IXAudio2SourceVoice* source_voice;
 } Win32XAudio2;
+
+typedef struct Win32XAudio2Buffer
+{
+    XAUDIO2_BUFFER xaudio2_buffer;
+    IXAudio2SourceVoice* source_voice;
+} Win32XAudio2SourceVoice;
 
 global_variable Win32XAudio2 g_win32_xaudio2;
 
@@ -429,7 +434,7 @@ void xaudio2_init()
         hr = g_win32_xaudio2.context->CreateMasteringVoice(&g_win32_xaudio2.mastering_voice);
         gj_AssertDebug(SUCCEEDED(hr));
     }
-
+    
     g_win32_xaudio2.wave_format_ext = {};
     g_win32_xaudio2.wave_format_ext.wFormatTag      = WAVE_FORMAT_PCM;
     g_win32_xaudio2.wave_format_ext.nChannels       = 2;
@@ -439,82 +444,56 @@ void xaudio2_init()
         
     g_win32_xaudio2.wave_format_ext.nBlockAlign     = (g_win32_xaudio2.wave_format_ext.nChannels * g_win32_xaudio2.wave_format_ext.wBitsPerSample) / 8;
     g_win32_xaudio2.wave_format_ext.nAvgBytesPerSec = g_win32_xaudio2.wave_format_ext.nSamplesPerSec * g_win32_xaudio2.wave_format_ext.nBlockAlign;
-
-    {
-        hr = g_win32_xaudio2.context->CreateSourceVoice(&g_win32_xaudio2.source_voice, &g_win32_xaudio2.wave_format_ext);
-        gj_AssertDebug(SUCCEEDED(hr));
-        hr = g_win32_xaudio2.source_voice->SetVolume(1.0f, XAUDIO2_COMMIT_NOW);
-        gj_AssertDebug(SUCCEEDED(hr));
-        hr = g_win32_xaudio2.source_voice->Start(0, XAUDIO2_COMMIT_NOW);
-        gj_AssertDebug(SUCCEEDED(hr));
-    }
-}
-
-u32 win32_get_max_queued_sound_buffers()
-{
-    return XAUDIO2_MAX_QUEUED_BUFFERS;
-}
-
-u32 win32_queued_sound_buffers()
-{
-    u32 result;
-    XAUDIO2_VOICE_STATE xaudio2_voice_state;
-#if __cplusplus
-    g_win32_xaudio2.source_voice->GetState(&xaudio2_voice_state, 0);
-#else
-    IXAudio2SourceVoice_GetState(g_win32_xaudio2.source_voice, &xaudio2_voice_state, 0);
-#endif
-    result = xaudio2_voice_state.BuffersQueued;
-    return result;
 }
 
 SoundBuffer win32_create_sound_buffer(uint32_t sample_count)
 {
     SoundBuffer result;
     
-    size_t buffer_size = (sizeof(int16_t) * sample_count * g_win32_xaudio2.wave_format_ext.nChannels);
+    size_t buffer_size = sizeof(int16_t) * sample_count;
     result.buffer = (int16_t*)win32_allocate_memory(buffer_size);
     result.buffer_size = buffer_size;
     result.count  = sample_count;
 
-    result.platform = win32_allocate_memory(sizeof(XAUDIO2_BUFFER));
-    XAUDIO2_BUFFER* xaudio2_buffer = (XAUDIO2_BUFFER*)result.platform;
-    xaudio2_buffer->Flags      = 0;
+    result.platform = win32_allocate_memory(sizeof(Win32XAudio2Buffer));
+    Win32XAudio2Buffer* win32_xaudio2_buffer = (Win32XAudio2Buffer*)result.platform;
+    
+    gj_ZeroMem(&win32_xaudio2_buffer->xaudio2_buffer, sizeof(XAUDIO2_BUFFER));
+    win32_xaudio2_buffer->xaudio2_buffer.Flags      = 0;
     // TODO: Ensure safe assignment
-    xaudio2_buffer->AudioBytes = (UINT32)buffer_size;
-    xaudio2_buffer->pAudioData = (const BYTE*)result.buffer;
-    xaudio2_buffer->PlayBegin  = 0;
-    xaudio2_buffer->PlayLength = 0;
-    xaudio2_buffer->LoopBegin  = 0;
-    xaudio2_buffer->LoopLength = 0;
-    xaudio2_buffer->LoopCount  = 0;
-    xaudio2_buffer->pContext   = 0;
+    win32_xaudio2_buffer->xaudio2_buffer.AudioBytes = (UINT32)buffer_size;
+    win32_xaudio2_buffer->xaudio2_buffer.pAudioData = (const BYTE*)result.buffer;
+    win32_xaudio2_buffer->xaudio2_buffer.PlayBegin  = 0;
+    win32_xaudio2_buffer->xaudio2_buffer.PlayLength = 0;
+    win32_xaudio2_buffer->xaudio2_buffer.LoopBegin  = 0;
+    win32_xaudio2_buffer->xaudio2_buffer.LoopLength = 0;
+    win32_xaudio2_buffer->xaudio2_buffer.LoopCount  = 0;
+    win32_xaudio2_buffer->xaudio2_buffer.pContext   = 0;
 
+    HRESULT hr = g_win32_xaudio2.context->CreateSourceVoice(&win32_xaudio2_buffer->source_voice, &g_win32_xaudio2.wave_format_ext);
+    gj_AssertDebug(SUCCEEDED(hr));
+        
     return result;
 }
 
 void win32_submit_sound_buffer(SoundBuffer sound_buffer)
 {
-    XAUDIO2_BUFFER* xaudio2_buffer = (XAUDIO2_BUFFER*)sound_buffer.platform;
-#if __cplusplus
-    gj_OnlyDebug(HRESULT hr = )g_win32_xaudio2.source_voice->SubmitSourceBuffer(xaudio2_buffer, NULL);
-#else
-    gj_OnlyDebug(HRESULT hr = )IXAudio2SourceVoice_SubmitSourceBuffer(g_win32_xaudio2.source_voice, xaudio2_buffer, NULL);
-#endif
-    gj_AssertDebug(SUCCEEDED(hr));
-}
+    HRESULT hr;
 
-u32 win32_get_remaining_samples(SoundBuffer sound_buffer)
-{
-    u32 result;
-    XAUDIO2_VOICE_STATE xaudio2_voice_state;
-#if __cplusplus
-    g_win32_xaudio2.source_voice->GetState(&xaudio2_voice_state, 0);
-#else
-    IXAudio2SourceVoice_GetState(g_win32_xaudio2.source_voice, &xaudio2_voice_state, 0);
-#endif
-    result = xaudio2_voice_state.SamplesPlayed % sound_buffer.count;
-    return result;
+    Win32XAudio2Buffer* win32_xaudio2_buffer = (Win32XAudio2Buffer*)sound_buffer.platform;
+
+    hr = win32_xaudio2_buffer->source_voice->Stop();
+    gj_AssertDebug(SUCCEEDED(hr));
+    
+    win32_xaudio2_buffer->xaudio2_buffer.PlayBegin = sound_buffer.play_begin_in_samples;
+    win32_xaudio2_buffer->xaudio2_buffer.PlayLength = sound_buffer.play_length_in_samples;
+    win32_xaudio2_buffer->source_voice->SetVolume(sound_buffer.volume);
+
+    hr = win32_xaudio2_buffer->source_voice->SubmitSourceBuffer(&win32_xaudio2_buffer->xaudio2_buffer);
+    gj_AssertDebug(SUCCEEDED(hr));
+
+    hr = win32_xaudio2_buffer->source_voice->Start(0);
+    gj_AssertDebug(SUCCEEDED(hr));
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -545,11 +524,8 @@ void win32_init_platform_api(PlatformAPI* platform_api, size_t memory_size)
 #endif
     gj_VerifyPlatformAPI((*platform_api));
     
-    platform_api->get_max_queued_sound_buffers = win32_get_max_queued_sound_buffers;
-    platform_api->queued_sound_buffers         = win32_queued_sound_buffers;
     platform_api->create_sound_buffer          = win32_create_sound_buffer;
     platform_api->submit_sound_buffer          = win32_submit_sound_buffer;
-    platform_api->get_remaining_samples        = win32_get_remaining_samples;
 
     if (memory_size > 0)
     {
