@@ -491,6 +491,11 @@ void win32_submit_sound_buffer(SoundBuffer sound_buffer)
 
     hr = win32_xaudio2_buffer->source_voice->Stop();
     gj_AssertDebug(SUCCEEDED(hr));
+    if (sound_buffer.play_begin_in_samples == 0)
+    {
+        hr = win32_xaudio2_buffer->source_voice->FlushSourceBuffers();
+        gj_AssertDebug(SUCCEEDED(hr));
+    }
     
     win32_xaudio2_buffer->xaudio2_buffer.PlayBegin = sound_buffer.play_begin_in_samples;
     win32_xaudio2_buffer->xaudio2_buffer.PlayLength = sound_buffer.play_length_in_samples;
