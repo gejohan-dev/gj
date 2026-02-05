@@ -792,7 +792,7 @@ M4x4 M4x4_from_axis_angle(V3f axis, f32 angle)
     
     f32 c = gj_cos(angle);
     f32 s = gj_sin(angle);
-    f32 t = 1.0 - c;
+    f32 t = 1.0f - c;
 	//  if axis is not already normalised then uncomment this
 	// double magnitude = Math.sqrt(axis.x*axis.x + axis.y*axis.y + axis.z*axis.z);
 	// if (magnitude==0) throw error;

@@ -53,7 +53,7 @@ int gj_sprintf(char* buffer, char* format, ...)
     return result;
 }
 
-int gj_snprintf(char* buffer, u64 buffer_size, char* format, ...)
+int gj_snprintf(char* buffer, int buffer_size, char* format, ...)
 {
     int result;
     va_list args;
@@ -676,7 +676,7 @@ typedef struct TicketMutex
 struct PlatformAPI;
 
 typedef PlatformFileHandle   GetFileHandle(const char* file_name, u8 mode_flags);
-typedef void                 ReadDataFromFileHandle(PlatformFileHandle file_handle, u64 offset, u32 size, void* dst);
+typedef void                 ReadDataFromFileHandle(PlatformFileHandle file_handle, u64 offset, u64 size, void* dst);
 typedef void                 WriteDataToFileHandle(PlatformFileHandle file_handle, u64 offset, size_t size, void* src);
 typedef void                 CloseFileHandle(PlatformFileHandle file_handle);
 typedef u32                  ReadWholeFile(const char* file_name, void* dst);

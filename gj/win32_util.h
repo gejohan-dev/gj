@@ -82,7 +82,6 @@ inline FILETIME
 win32_get_last_write_time(const char* file_name)
 {
     FILETIME result = {};
-    WIN32_FILE_ATTRIBUTE_DATA file_attribute_data;
     HANDLE file_handle = CreateFileA(file_name, 0, FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (!GetFileTime(file_handle, NULL, NULL, &result))
     {

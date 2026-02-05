@@ -88,7 +88,7 @@ gj_obj_loader_parse_s32(GJ_ObjLoader_ParseState* parse_state)
 
 static void
 gj_obj_loader_load(PlatformAPI* platform_api, const char* obj_filename,
-                   V3f* out_positions, V3f* out_normals, V2f* out_uvs, size_t stride, const u32 vertices_max_count, u32* vertex_count,
+                   V3f* out_positions, V3f* out_normals, V2f* out_uvs, u64 stride, const u32 vertices_max_count, u32* vertex_count,
                    s32* out_indices, const u32 indices_max_count, u32* index_count)
 {
     GJ_ObjLoader_ParseState parse_state;
@@ -120,7 +120,7 @@ gj_obj_loader_load(PlatformAPI* platform_api, const char* obj_filename,
             positions->y = gj_obj_loader_parse_f32(&parse_state);
             positions->z = gj_obj_loader_parse_f32(&parse_state);
             positions = (V3f*)(((byte*)positions) + stride);
-            position_count++; gj_Assert(position_count <= vertices_max_count);
+            position_count++; gj_AssertDebug(position_count <= vertices_max_count);
             *vertex_count += 1;
         }
         else if (gj_obj_loader_check_current_word(&parse_state, Normal))
@@ -130,7 +130,7 @@ gj_obj_loader_load(PlatformAPI* platform_api, const char* obj_filename,
             normals_pointer->y = gj_obj_loader_parse_f32(&parse_state);
             normals_pointer->z = gj_obj_loader_parse_f32(&parse_state);
             normals_pointer++;
-            normal_count++; gj_Assert(normal_count <= vertices_max_count);
+            normal_count++; gj_AssertDebug(normal_count <= vertices_max_count);
         }
         else if (gj_obj_loader_check_current_word(&parse_state, UV))
         {
@@ -138,7 +138,7 @@ gj_obj_loader_load(PlatformAPI* platform_api, const char* obj_filename,
             uvs_pointer->x = gj_obj_loader_parse_f32(&parse_state);
             uvs_pointer->y = gj_obj_loader_parse_f32(&parse_state);
             uvs_pointer++;
-            uv_count++; gj_Assert(uv_count <= vertices_max_count);
+            uv_count++; gj_AssertDebug(uv_count <= vertices_max_count);
         }
         else if (gj_obj_loader_check_current_word(&parse_state, Face))
         {
@@ -157,7 +157,7 @@ gj_obj_loader_load(PlatformAPI* platform_api, const char* obj_filename,
             AssignIndicesAndUVs(p3, 3);
             AssignIndicesAndUVs(p4, 4);
 
-#define AddIndex(P) indices[*index_count] = (P - 1); *index_count += 1; gj_Assert(*index_count <= indices_max_count);
+#define AddIndex(P) indices[*index_count] = (P - 1); *index_count += 1; gj_AssertDebug(*index_count <= indices_max_count);
             AddIndex(p1);
             AddIndex(p2);
             AddIndex(p3);
