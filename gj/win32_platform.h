@@ -86,7 +86,7 @@ PlatformFileHandle win32_get_file_handle(const char* file_name, u8 mode_flags)
     return result;
 }
 
-void win32_read_data_from_file_handle(PlatformFileHandle file_handle, u64 offset, u32 size, void* dst)
+void win32_read_data_from_file_handle(PlatformFileHandle file_handle, u64 offset, u64 size, void* dst)
 {
     HANDLE handle = *(HANDLE*)&file_handle.handle;
     
@@ -186,7 +186,6 @@ FileTime win32_get_file_last_write_time(const char* file_name)
     FileTime result;
 
     FILETIME filetime = {};
-    WIN32_FILE_ATTRIBUTE_DATA file_attribute_data;
     HANDLE file_handle = CreateFileA(file_name, 0, FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (!GetFileTime(file_handle, NULL, NULL, &filetime))
     {
@@ -342,17 +341,20 @@ void _write_to_stdout(char* buffer, u64 buffer_size)
 {
     if (!g_stdout_handle) g_stdout_handle = win32_get_stdout_handle();
     if (!g_log_file_handle.handle) g_log_file_handle = win32_get_file_handle("logs", PlatformOpenFileModeFlags_Write);
-    WriteFile(g_stdout_handle, buffer, buffer_size, NULL, NULL);
+    WriteFile(g_stdout_handle, buffer, gj_safe_cast_u64_to_u32(buffer_size), NULL, NULL);
     if (g_log_file_handle.file_size > Megabytes(1))
     {
         g_log_file_handle.file_size = 0;
     }
     win32_write_data_to_file_handle(g_log_file_handle, g_log_file_handle.file_size, buffer_size, buffer);
-    g_log_file_handle.file_size += buffer_size;
+    g_log_file_handle.file_size += gj_safe_cast_u64_to_u32(buffer_size);
 }
 
 void win32_log_error(char* file, char* function, s32 line, char* format, ...)
 {
+    SYSTEMTIME st;
+    GetLocalTime(&st);
+
     va_list varargs;
     va_start(varargs, format);
     char buffer[BUFFER_SIZE * 2];
@@ -360,12 +362,16 @@ void win32_log_error(char* file, char* function, s32 line, char* format, ...)
     va_end(varargs);
 
     char buffer2[BUFFER_SIZE * 4];
-    u64 buffer2_size = stbsp_snprintf(buffer2, sizeof(buffer2), "Error in %s:%s %d %s\n", file, function, line, buffer);
+    u64 buffer2_size = stbsp_snprintf(buffer2, sizeof(buffer2), "[%04d-%02d-%02d %02d:%02d:%02d.%03d] Error in %s:%s %d %s\n",
+        st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds, file, function, line, buffer);
     _write_to_stdout(buffer2, buffer2_size);
 }
 
 void win32_log_info(char* file, char* function, s32 line, char* format, ...)
 {
+    SYSTEMTIME st;
+    GetLocalTime(&st);
+
     va_list varargs;
     va_start(varargs, format);
     char buffer[BUFFER_SIZE * 2];
@@ -373,7 +379,8 @@ void win32_log_info(char* file, char* function, s32 line, char* format, ...)
     va_end(varargs);
 
     char buffer2[BUFFER_SIZE * 4];
-    u64 buffer2_size = stbsp_snprintf(buffer2, sizeof(buffer2), "Info %s:%s %d %s\n", file, function, line, buffer);
+    u64 buffer2_size = stbsp_snprintf(buffer2, sizeof(buffer2), "[%04d-%02d-%02d %02d:%02d:%02d.%03d] Info %s:%s %d %s\n",
+        st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds, file, function, line, buffer);
     _write_to_stdout(buffer2, buffer2_size);
 }
 
