@@ -709,6 +709,7 @@ typedef struct SoundBuffer
     u32 play_begin_in_samples;
     u32 play_length_in_samples;
     f32 volume;
+    f32 pitch;
 } SoundBuffer;
 
 typedef SoundBuffer CreatesoundBuffer(uint32_t sample_count);

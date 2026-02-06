@@ -405,10 +405,13 @@ typedef struct Win32XAudio2
     WAVEFORMATEX wave_format_ext;
 } Win32XAudio2;
 
+#define SOUND_VOICE_POOL_SIZE 4
+
 typedef struct Win32XAudio2Buffer
 {
     XAUDIO2_BUFFER xaudio2_buffer;
-    IXAudio2SourceVoice* source_voice;
+    IXAudio2SourceVoice* source_voices[SOUND_VOICE_POOL_SIZE];
+    u32 next_voice_index;
 } Win32XAudio2SourceVoice;
 
 global_variable Win32XAudio2 g_win32_xaudio2;
@@ -477,9 +480,13 @@ SoundBuffer win32_create_sound_buffer(uint32_t sample_count)
     win32_xaudio2_buffer->xaudio2_buffer.LoopCount  = 0;
     win32_xaudio2_buffer->xaudio2_buffer.pContext   = 0;
 
-    HRESULT hr = g_win32_xaudio2.context->CreateSourceVoice(&win32_xaudio2_buffer->source_voice, &g_win32_xaudio2.wave_format_ext);
-    gj_AssertDebug(SUCCEEDED(hr));
-        
+    for (u32 i = 0; i < SOUND_VOICE_POOL_SIZE; i++)
+    {
+        HRESULT hr = g_win32_xaudio2.context->CreateSourceVoice(&win32_xaudio2_buffer->source_voices[i], &g_win32_xaudio2.wave_format_ext);
+        gj_AssertDebug(SUCCEEDED(hr));
+    }
+    win32_xaudio2_buffer->next_voice_index = 0;
+
     return result;
 }
 
@@ -489,22 +496,40 @@ void win32_submit_sound_buffer(SoundBuffer sound_buffer)
 
     Win32XAudio2Buffer* win32_xaudio2_buffer = (Win32XAudio2Buffer*)sound_buffer.platform;
 
-    hr = win32_xaudio2_buffer->source_voice->Stop();
-    gj_AssertDebug(SUCCEEDED(hr));
-    if (sound_buffer.play_begin_in_samples == 0)
+    // Find a free voice, or steal the round-robin candidate
+    u32 chosen = win32_xaudio2_buffer->next_voice_index;
+    for (u32 i = 0; i < SOUND_VOICE_POOL_SIZE; i++)
     {
-        hr = win32_xaudio2_buffer->source_voice->FlushSourceBuffers();
-        gj_AssertDebug(SUCCEEDED(hr));
+        u32 idx = (win32_xaudio2_buffer->next_voice_index + i) % SOUND_VOICE_POOL_SIZE;
+        XAUDIO2_VOICE_STATE state;
+        win32_xaudio2_buffer->source_voices[idx]->GetState(&state);
+        if (state.BuffersQueued == 0)
+        {
+            chosen = idx;
+            break;
+        }
     }
-    
+
+    IXAudio2SourceVoice* voice = win32_xaudio2_buffer->source_voices[chosen];
+    win32_xaudio2_buffer->next_voice_index = (chosen + 1) % SOUND_VOICE_POOL_SIZE;
+
+    hr = voice->Stop();
+    gj_AssertDebug(SUCCEEDED(hr));
+    hr = voice->FlushSourceBuffers();
+    gj_AssertDebug(SUCCEEDED(hr));
+
     win32_xaudio2_buffer->xaudio2_buffer.PlayBegin = sound_buffer.play_begin_in_samples;
     win32_xaudio2_buffer->xaudio2_buffer.PlayLength = sound_buffer.play_length_in_samples;
-    win32_xaudio2_buffer->source_voice->SetVolume(sound_buffer.volume);
+    voice->SetVolume(sound_buffer.volume);
 
-    hr = win32_xaudio2_buffer->source_voice->SubmitSourceBuffer(&win32_xaudio2_buffer->xaudio2_buffer);
+    f32 pitch = sound_buffer.pitch;
+    if (pitch <= 0.0f) pitch = 1.0f;
+    voice->SetFrequencyRatio(pitch);
+
+    hr = voice->SubmitSourceBuffer(&win32_xaudio2_buffer->xaudio2_buffer);
     gj_AssertDebug(SUCCEEDED(hr));
 
-    hr = win32_xaudio2_buffer->source_voice->Start(0);
+    hr = voice->Start(0);
     gj_AssertDebug(SUCCEEDED(hr));
 }
 
