@@ -402,7 +402,6 @@ typedef struct Win32XAudio2
 {
     IXAudio2* context;
     IXAudio2MasteringVoice* mastering_voice;
-    WAVEFORMATEX wave_format_ext;
 } Win32XAudio2;
 
 #define SOUND_VOICE_POOL_SIZE 4
@@ -445,21 +444,12 @@ void xaudio2_init()
         gj_AssertDebug(SUCCEEDED(hr));
     }
     
-    g_win32_xaudio2.wave_format_ext = {};
-    g_win32_xaudio2.wave_format_ext.wFormatTag      = WAVE_FORMAT_PCM;
-    g_win32_xaudio2.wave_format_ext.nChannels       = 2;
-    g_win32_xaudio2.wave_format_ext.nSamplesPerSec  = 48000;
-    g_win32_xaudio2.wave_format_ext.wBitsPerSample  = 16;
-    g_win32_xaudio2.wave_format_ext.cbSize          = 0;
-        
-    g_win32_xaudio2.wave_format_ext.nBlockAlign     = (g_win32_xaudio2.wave_format_ext.nChannels * g_win32_xaudio2.wave_format_ext.wBitsPerSample) / 8;
-    g_win32_xaudio2.wave_format_ext.nAvgBytesPerSec = g_win32_xaudio2.wave_format_ext.nSamplesPerSec * g_win32_xaudio2.wave_format_ext.nBlockAlign;
 }
 
-SoundBuffer win32_create_sound_buffer(uint32_t sample_count)
+SoundBuffer win32_create_sound_buffer(uint32_t sample_count, u16 num_channels, u32 sample_rate, u16 bits_per_sample)
 {
     SoundBuffer result;
-    
+
     size_t buffer_size = sizeof(int16_t) * sample_count;
     result.buffer = (int16_t*)win32_allocate_memory(buffer_size);
     result.buffer_size = buffer_size;
@@ -467,7 +457,7 @@ SoundBuffer win32_create_sound_buffer(uint32_t sample_count)
 
     result.platform = win32_allocate_memory(sizeof(Win32XAudio2Buffer));
     Win32XAudio2Buffer* win32_xaudio2_buffer = (Win32XAudio2Buffer*)result.platform;
-    
+
     gj_ZeroMem(&win32_xaudio2_buffer->xaudio2_buffer, sizeof(XAUDIO2_BUFFER));
     win32_xaudio2_buffer->xaudio2_buffer.Flags      = 0;
     // TODO: Ensure safe assignment
@@ -480,9 +470,17 @@ SoundBuffer win32_create_sound_buffer(uint32_t sample_count)
     win32_xaudio2_buffer->xaudio2_buffer.LoopCount  = 0;
     win32_xaudio2_buffer->xaudio2_buffer.pContext   = 0;
 
+    WAVEFORMATEX wave_format = {};
+    wave_format.wFormatTag      = WAVE_FORMAT_PCM;
+    wave_format.nChannels       = num_channels;
+    wave_format.nSamplesPerSec  = sample_rate;
+    wave_format.wBitsPerSample  = bits_per_sample;
+    wave_format.nBlockAlign     = (num_channels * bits_per_sample) / 8;
+    wave_format.nAvgBytesPerSec = sample_rate * wave_format.nBlockAlign;
+
     for (u32 i = 0; i < SOUND_VOICE_POOL_SIZE; i++)
     {
-        HRESULT hr = g_win32_xaudio2.context->CreateSourceVoice(&win32_xaudio2_buffer->source_voices[i], &g_win32_xaudio2.wave_format_ext);
+        HRESULT hr = g_win32_xaudio2.context->CreateSourceVoice(&win32_xaudio2_buffer->source_voices[i], &wave_format);
         gj_AssertDebug(SUCCEEDED(hr));
     }
     win32_xaudio2_buffer->next_voice_index = 0;
@@ -533,6 +531,16 @@ void win32_submit_sound_buffer(SoundBuffer sound_buffer)
     gj_AssertDebug(SUCCEEDED(hr));
 }
 
+void win32_stop_sound_buffer(SoundBuffer sound_buffer)
+{
+    Win32XAudio2Buffer* win32_xaudio2_buffer = (Win32XAudio2Buffer*)sound_buffer.platform;
+    for (u32 i = 0; i < SOUND_VOICE_POOL_SIZE; i++)
+    {
+        win32_xaudio2_buffer->source_voices[i]->Stop();
+        win32_xaudio2_buffer->source_voices[i]->FlushSourceBuffers();
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Init
 ///////////////////////////////////////////////////////////////////////////
@@ -563,6 +571,7 @@ void win32_init_platform_api(PlatformAPI* platform_api, size_t memory_size)
     
     platform_api->create_sound_buffer          = win32_create_sound_buffer;
     platform_api->submit_sound_buffer          = win32_submit_sound_buffer;
+    platform_api->stop_sound_buffer            = win32_stop_sound_buffer;
 
     if (memory_size > 0)
     {

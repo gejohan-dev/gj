@@ -769,8 +769,8 @@ M4x4 M4x4_orthographic_matrix(f32 left, f32 right, f32 bottom, f32 top, f32 near
     result._13 = -(top + bottom) / (top - bottom);
     result._23 = -near_plane / (far_plane - near_plane);
 
-    result._32 = 1.0f;   // Just like the perspective version
-    result._33 = 0.0f;   // Keeps result in homogeneous clip space
+    result._32 = 0.0f;
+    result._33 = 1.0f;
 
     return result;
 }
@@ -991,6 +991,31 @@ V4f Quat_slerp(V4f q1, V4f q2, f32 t)
     result.qz = q1.qz * k0 + q2.qz * k1;
     
     return V4_normalize(result);
+}
+
+f32 Quat_euler_x(V4f q)
+{
+    f32 sinr_cosp = 2.0f * (q.qw * q.qx + q.qy * q.qz);
+    f32 cosr_cosp = 1.0f - 2.0f * (q.qx * q.qx + q.qy * q.qy);
+    return gj_atan2(sinr_cosp, cosr_cosp) * RAD_TO_DEG;
+}
+
+f32 Quat_euler_y(V4f q)
+{
+    f32 sinp = 2.0f * (q.qw * q.qy - q.qz * q.qx);
+    return (fabsf(sinp) >= 1.0f) ? copysignf(90.0f, sinp) : asinf(sinp) * RAD_TO_DEG;
+}
+
+f32 Quat_euler_z(V4f q)
+{
+    f32 siny_cosp = 2.0f * (q.qw * q.qz + q.qx * q.qy);
+    f32 cosy_cosp = 1.0f - 2.0f * (q.qy * q.qy + q.qz * q.qz);
+    return gj_atan2(siny_cosp, cosy_cosp) * RAD_TO_DEG;
+}
+
+V3f Quat_to_euler(V4f q)
+{
+    return {Quat_euler_x(q), Quat_euler_y(q), Quat_euler_z(q)};
 }
 
 ///////////////////////////////////////////////////////////////////////////
