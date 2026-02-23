@@ -26,6 +26,7 @@ struct Win32DX11
     ID3D11RasterizerState*   rasterizer_state;
     ID3D11RasterizerState*   rasterizer_state_cull_front;
     ID3D11RasterizerState*   rasterizer_state_wireframe;
+    ID3D11RasterizerState*   rasterizer_state_no_cull;
     ID3D11DepthStencilState* depth_stencil_state;
     ID3D11DepthStencilView*  depth_buffer_view;
     ID3D11BlendState*        blend_state;
@@ -55,9 +56,10 @@ D3D11_compile_shader(const void* shader_file_contents,
         entry_point,
         target,
 #if GJ_DEBUG
-        D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION |
+        D3DCOMPILE_DEBUG |
+        D3DCOMPILE_WARNINGS_ARE_ERRORS |
 #endif
-        D3DCOMPILE_WARNINGS_ARE_ERRORS,
+        D3DCOMPILE_OPTIMIZATION_LEVEL3,
         0,
         shader_blob,
         error_messages
@@ -247,6 +249,11 @@ win32_init_directx11(Win32DX11* win32_dx11, HWND window, DirectX11Config config 
         D3D11_RASTERIZER_DESC rasterizer_desc_wireframe = rasterizer_desc;
         rasterizer_desc_wireframe.FillMode = D3D11_FILL_WIREFRAME;
         gj_OnlyDebug(hr = )win32_dx11->device->CreateRasterizerState(&rasterizer_desc_wireframe, &win32_dx11->rasterizer_state_wireframe);
+        gj_AssertDebug(SUCCEEDED(hr));
+
+        D3D11_RASTERIZER_DESC rasterizer_desc_no_cull = rasterizer_desc;
+        rasterizer_desc_no_cull.CullMode = D3D11_CULL_NONE;
+        gj_OnlyDebug(hr = )win32_dx11->device->CreateRasterizerState(&rasterizer_desc_no_cull, &win32_dx11->rasterizer_state_no_cull);
         gj_AssertDebug(SUCCEEDED(hr));
     }
 
