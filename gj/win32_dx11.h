@@ -30,6 +30,7 @@ struct Win32DX11
     ID3D11DepthStencilState* depth_stencil_state;
     ID3D11DepthStencilView*  depth_buffer_view;
     ID3D11BlendState*        blend_state;
+    ID3D11BlendState*        blend_state_with_alpha_to_coverage;
 #if GJ_DEBUG
     ID3D11Debug*             debug_context;
 #endif
@@ -294,8 +295,13 @@ win32_init_directx11(Win32DX11* win32_dx11, HWND window, DirectX11Config config 
         blend_desc.AlphaToCoverageEnable  = false;
         blend_desc.IndependentBlendEnable = false;
         blend_desc.RenderTarget[0] = render_target_blend_desc;
-
         win32_dx11->device->CreateBlendState(&blend_desc, &win32_dx11->blend_state);
+
+        D3D11_BLEND_DESC blend_desc_with_alpha_to_coverage;
+        blend_desc_with_alpha_to_coverage.AlphaToCoverageEnable  = true;
+        blend_desc_with_alpha_to_coverage.IndependentBlendEnable = false;
+        blend_desc_with_alpha_to_coverage.RenderTarget[0] = render_target_blend_desc;
+        win32_dx11->device->CreateBlendState(&blend_desc_with_alpha_to_coverage, &win32_dx11->blend_state_with_alpha_to_coverage);
     }
 #endif
     
@@ -335,8 +341,6 @@ win32_d3d11_set_state(Win32DX11* win32_dx11, u32 viewport_width, u32 viewport_he
     device_context->RSSetState(win32_dx11->rasterizer_state);
     
     device_context->OMSetDepthStencilState(win32_dx11->depth_stencil_state, 0);
-    f32 blend_factor[] = {0.0f, 0.0f, 0.0f, 0.0f};
-    device_context->OMSetBlendState(win32_dx11->blend_state, NULL, 0xFFFFFFFF);
     device_context->OMSetRenderTargets(1, &win32_dx11->frame_buffer_view, win32_dx11->depth_buffer_view);
 }
 
