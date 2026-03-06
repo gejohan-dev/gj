@@ -752,8 +752,8 @@ M4x4 M4x4_inverse_projection_matrix(M4x4 projection_matrix)
     result._00 = 1.0f / projection_matrix._00;
     result._11 = 1.0f / projection_matrix._11;
     result._23 = 1.0f;
-    result._32 = 1.0f /projection_matrix._23;
-    result._33 = projection_matrix._22 / projection_matrix._23;
+    result._32 = 1.0f / projection_matrix._23;
+    result._33 = -projection_matrix._22 / projection_matrix._23;
     return result;
 }
 

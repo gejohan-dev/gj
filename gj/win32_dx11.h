@@ -19,20 +19,23 @@ struct Win32DX11
 {
     DirectX11Config config;
     
-    ID3D11Device*            device;
-    ID3D11DeviceContext*     device_context;
-    IDXGISwapChain*          swap_chain;
-    ID3D11RenderTargetView*  frame_buffer_view;
-    ID3D11RasterizerState*   rasterizer_state;
-    ID3D11RasterizerState*   rasterizer_state_cull_front;
-    ID3D11RasterizerState*   rasterizer_state_wireframe;
-    ID3D11RasterizerState*   rasterizer_state_no_cull;
-    ID3D11DepthStencilState* depth_stencil_state;
-    ID3D11DepthStencilView*  depth_buffer_view;
-    ID3D11BlendState*        blend_state;
-    ID3D11BlendState*        blend_state_with_alpha_to_coverage;
+    ID3D11Device*             device;
+    ID3D11DeviceContext*      device_context;
+    IDXGISwapChain*           swap_chain;
+    ID3D11RenderTargetView*   frame_buffer_view;
+    ID3D11RasterizerState*    rasterizer_state;
+    ID3D11RasterizerState*    rasterizer_state_cull_front;
+    ID3D11RasterizerState*    rasterizer_state_wireframe;
+    ID3D11RasterizerState*    rasterizer_state_no_cull;
+    ID3D11DepthStencilState*  depth_stencil_state;
+    ID3D11DepthStencilView*   depth_buffer_view;
+    ID3D11DepthStencilView*   depth_buffer_view_read_only;
+    ID3D11ShaderResourceView* depth_buffer_srv;
+    ID3D11DepthStencilState*  depth_stencil_state_decal;
+    ID3D11BlendState*         blend_state;
+    ID3D11BlendState*         blend_state_with_alpha_to_coverage;
 #if GJ_DEBUG
-    ID3D11Debug*             debug_context;
+    ID3D11Debug*              debug_context;
 #endif
 };
 
@@ -97,7 +100,7 @@ win32_init_directx11_render_views(Win32DX11* win32_dx11,
     depth_buffer_desc.Format         = DXGI_FORMAT_R24G8_TYPELESS;
     /* depth_buffer_desc.SampleDesc     = ; */
     /* depth_buffer_desc.Usage          = ; */
-    depth_buffer_desc.BindFlags      = D3D11_BIND_DEPTH_STENCIL;
+    depth_buffer_desc.BindFlags      = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
     depth_buffer_desc.CPUAccessFlags = 0;
     depth_buffer_desc.MiscFlags      = 0;
 
@@ -120,7 +123,29 @@ win32_init_directx11_render_views(Win32DX11* win32_dx11,
     }
     hr = device->CreateDepthStencilView(depth_buffer, &depth_stencil_view_desc, depth_buffer_view);
     gj_Assert(SUCCEEDED(hr));
-        
+
+    // Read-only DSV — allows simultaneous SRV binding
+    D3D11_DEPTH_STENCIL_VIEW_DESC read_only_dsv_desc = depth_stencil_view_desc;
+    read_only_dsv_desc.Flags = D3D11_DSV_READ_ONLY_DEPTH | D3D11_DSV_READ_ONLY_STENCIL;
+    hr = device->CreateDepthStencilView(depth_buffer, &read_only_dsv_desc, &win32_dx11->depth_buffer_view_read_only);
+    gj_Assert(SUCCEEDED(hr));
+
+    // SRV for reading depth in pixel shader
+    D3D11_SHADER_RESOURCE_VIEW_DESC depth_srv_desc = {};
+    depth_srv_desc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+    if (win32_dx11->config.msaa == 1)
+    {
+        depth_srv_desc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
+        depth_srv_desc.Texture2D.MipLevels       = 1;
+        depth_srv_desc.Texture2D.MostDetailedMip = 0;
+    }
+    else
+    {
+        depth_srv_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
+    }
+    hr = device->CreateShaderResourceView(depth_buffer, &depth_srv_desc, &win32_dx11->depth_buffer_srv);
+    gj_Assert(SUCCEEDED(hr));
+
     frame_buffer->Release();
     depth_buffer->Release();
 }
@@ -276,6 +301,12 @@ win32_init_directx11(Win32DX11* win32_dx11, HWND window, DirectX11Config config 
         depth_stencil_desc.BackFace         = depth_stencil_op_desc;
         gj_OnlyDebug(HRESULT hr = )win32_dx11->device->CreateDepthStencilState(&depth_stencil_desc, &win32_dx11->depth_stencil_state);
         gj_AssertDebug(SUCCEEDED(hr));
+
+        D3D11_DEPTH_STENCIL_DESC depth_stencil_desc_decal = depth_stencil_desc;
+        depth_stencil_desc_decal.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+        depth_stencil_desc_decal.DepthFunc      = D3D11_COMPARISON_GREATER_EQUAL;
+        gj_OnlyDebug(hr = )win32_dx11->device->CreateDepthStencilState(&depth_stencil_desc_decal, &win32_dx11->depth_stencil_state_decal);
+        gj_AssertDebug(SUCCEEDED(hr));
     }
 
 #if 1
@@ -302,6 +333,7 @@ win32_init_directx11(Win32DX11* win32_dx11, HWND window, DirectX11Config config 
         blend_desc_with_alpha_to_coverage.IndependentBlendEnable = false;
         blend_desc_with_alpha_to_coverage.RenderTarget[0] = render_target_blend_desc;
         win32_dx11->device->CreateBlendState(&blend_desc_with_alpha_to_coverage, &win32_dx11->blend_state_with_alpha_to_coverage);
+
     }
 #endif
     
@@ -347,8 +379,10 @@ win32_d3d11_set_state(Win32DX11* win32_dx11, u32 viewport_width, u32 viewport_he
 static void
 win32_d3d11_resize(Win32DX11* win32_dx11)
 {
-    if (win32_dx11->frame_buffer_view) win32_dx11->frame_buffer_view->Release();
-    if (win32_dx11->depth_buffer_view) win32_dx11->depth_buffer_view->Release();
+    if (win32_dx11->frame_buffer_view)            win32_dx11->frame_buffer_view->Release();
+    if (win32_dx11->depth_buffer_view)            win32_dx11->depth_buffer_view->Release();
+    if (win32_dx11->depth_buffer_view_read_only)  win32_dx11->depth_buffer_view_read_only->Release();
+    if (win32_dx11->depth_buffer_srv)             win32_dx11->depth_buffer_srv->Release();
     win32_dx11->swap_chain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
     win32_init_directx11_render_views(win32_dx11,
                                       win32_dx11->device, win32_dx11->swap_chain,
