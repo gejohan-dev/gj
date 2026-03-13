@@ -73,7 +73,6 @@ D3D11_compile_shader(const void* shader_file_contents,
         OutputDebugStringA((char*)(*error_messages)->GetBufferPointer());
         result = false;
     }
-    gj_AssertHR(hr);
 
     return result;
 }

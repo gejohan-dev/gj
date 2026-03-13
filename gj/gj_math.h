@@ -547,14 +547,14 @@ inline void M4x4_apply_translate(M4x4* m, f32 x, f32 y, f32 z)
 inline void M4x4_apply_translate(M4x4* m, V3f v) { M4x4_apply_translate(m, v.x, v.y, v.z); }
 
 inline void
-M4x4_apply_transpose(M4x4& m)
+M4x4_apply_transpose(M4x4* m)
 {
-    gj_SwapArray(m.a, f32, 1,  4);
-    gj_SwapArray(m.a, f32, 2,  8);
-    gj_SwapArray(m.a, f32, 3,  12);
-    gj_SwapArray(m.a, f32, 6,  9);
-    gj_SwapArray(m.a, f32, 7,  13);
-    gj_SwapArray(m.a, f32, 11, 14);
+    gj_SwapArray(m->a, f32, 1,  4);
+    gj_SwapArray(m->a, f32, 2,  8);
+    gj_SwapArray(m->a, f32, 3,  12);
+    gj_SwapArray(m->a, f32, 6,  9);
+    gj_SwapArray(m->a, f32, 7,  13);
+    gj_SwapArray(m->a, f32, 11, 14);
 }
 
 inline void M4x4_apply_rotate_x(M4x4& m, f32 angle_degrees)
@@ -614,17 +614,6 @@ inline void M4x4_apply_translate(M4x4* m, f32 x, f32 y, f32 z)
     m->a[11] += m->a[8]*x  + m->a[9]*y  + m->a[10]*z;
     m->a[15] += m->a[12]*x + m->a[13]*y + m->a[14]*z;    
 }
-
-inline void
-M4x4_apply_transpose(M4x4* m)
-{
-    gj_SwapArray(m->a, f32, 1,  4);
-    gj_SwapArray(m->a, f32, 2,  8);
-    gj_SwapArray(m->a, f32, 3,  12);
-    gj_SwapArray(m->a, f32, 6,  9);
-    gj_SwapArray(m->a, f32, 7,  13);
-    gj_SwapArray(m->a, f32, 11, 14);
-}
 #endif
 
 inline V3f
@@ -680,11 +669,8 @@ M4x4 M4x4_inverse_model_view_matrix(M4x4 model_view_matrix)
     result._03 = 0.0f; 
     result._13 = 0.0f;
     result._23 = 0.0f;
-#if defined(__cplusplus)
-    M4x4_apply_transpose(result);
-#else
     M4x4_apply_transpose(&result);
-#endif
+
     V3f t = {model_view_matrix._03, model_view_matrix._13, model_view_matrix._23};
     result._03 = -V3_dot(t, M4x4_get_x_row(result));
     result._13 = -V3_dot(t, M4x4_get_y_row(result));
