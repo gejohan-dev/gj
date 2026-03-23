@@ -452,6 +452,8 @@ static s32 gj_parse_word(const char* s, char* dst, int dst_size)
 // TODO: Try using __debugbreak
 #if defined(GJ_DEBUG)
 #define brk do { int ______ = 0; ______++; } while(gj_False)
+#else
+#define brk
 #endif // #if defined(GJ_DEBUG)
 
 // Note: Put this function call on a line that you wish to keep, regardless of optimization level
