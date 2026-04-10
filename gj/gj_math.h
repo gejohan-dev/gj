@@ -57,6 +57,7 @@ inline f32 gj_sqrt (f32 x)        { return sqrtf(x); }
 inline f32 gj_pow  (f32 x, f32 n) { return powf(x,n); }
 inline s32 gj_round(f32 x)        { return lroundf(x); }
 inline s32 gj_floor(f32 x)        { return (s32)floorf(x); }
+inline f32 gj_log  (f32 x)        { return logf(x); }
 
 ///////////////////////////////////////////////////////////////////////////
 // Trigonometric Functions

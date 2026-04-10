@@ -541,6 +541,15 @@ void win32_stop_sound_buffer(SoundBuffer sound_buffer)
     }
 }
 
+void win32_set_volume(SoundBuffer sound_buffer)
+{
+    Win32XAudio2Buffer* win32_xaudio2_buffer = (Win32XAudio2Buffer*)sound_buffer.platform;
+    for (u32 i = 0; i < SOUND_VOICE_POOL_SIZE; i++)
+    {
+        win32_xaudio2_buffer->source_voices[i]->SetVolume(sound_buffer.volume);
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Init
 ///////////////////////////////////////////////////////////////////////////
@@ -572,7 +581,8 @@ void win32_init_platform_api(PlatformAPI* platform_api, size_t memory_size)
     platform_api->create_sound_buffer          = win32_create_sound_buffer;
     platform_api->submit_sound_buffer          = win32_submit_sound_buffer;
     platform_api->stop_sound_buffer            = win32_stop_sound_buffer;
-
+    platform_api->set_volume                   = win32_set_volume;
+    
     if (memory_size > 0)
     {
         platform_api->memory      = platform_api->allocate_memory(memory_size);
