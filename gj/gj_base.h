@@ -718,6 +718,7 @@ typedef SoundBuffer CreatesoundBuffer(uint32_t sample_count, u16 num_channels, u
 typedef void        SubmitSoundBuffer(SoundBuffer sound_buffer);
 typedef void        StopSoundBuffer(SoundBuffer sound_buffer);
 typedef void        SetVolume(SoundBuffer sound_buffer);
+typedef u64         GetSamplesLeft(SoundBuffer sound_buffer);
 
 ///////////////////////////////////////////////////////////////////////////
 // PlatformAPI
@@ -781,7 +782,7 @@ typedef struct PlatformAPI
     SubmitSoundBuffer*        submit_sound_buffer;
     StopSoundBuffer*          stop_sound_buffer;
     SetVolume*                set_volume;
-    
+    GetSamplesLeft*           get_samples_left;
     //
     // Memory
     //

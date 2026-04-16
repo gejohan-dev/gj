@@ -550,6 +550,30 @@ void win32_set_volume(SoundBuffer sound_buffer)
     }
 }
 
+u64 win32_get_samples_left(SoundBuffer sound_buffer)
+{
+    u64 result = 0;
+    Win32XAudio2Buffer* win32_xaudio2_buffer = (Win32XAudio2Buffer*)sound_buffer.platform;
+    for (u32 i = 0; i < SOUND_VOICE_POOL_SIZE; i++)
+    {
+        XAUDIO2_VOICE_STATE xaudio2_voice_state;
+        win32_xaudio2_buffer->source_voices[i]->GetState(&xaudio2_voice_state, 0);
+        if (xaudio2_voice_state.BuffersQueued > 0)
+        {
+            u64 samples_left = sound_buffer.count - xaudio2_voice_state.SamplesPlayed;
+            if (result == 0)
+            {
+                result = samples_left;
+            }
+            else
+            {
+                result = gj_Min(result, samples_left);
+            }
+        }
+    }
+    return result;
+}
+
 ///////////////////////////////////////////////////////////////////////////
 // Init
 ///////////////////////////////////////////////////////////////////////////
@@ -578,10 +602,11 @@ void win32_init_platform_api(PlatformAPI* platform_api, size_t memory_size)
 #endif
     gj_VerifyPlatformAPI((*platform_api));
     
-    platform_api->create_sound_buffer          = win32_create_sound_buffer;
-    platform_api->submit_sound_buffer          = win32_submit_sound_buffer;
-    platform_api->stop_sound_buffer            = win32_stop_sound_buffer;
-    platform_api->set_volume                   = win32_set_volume;
+    platform_api->create_sound_buffer = win32_create_sound_buffer;
+    platform_api->submit_sound_buffer = win32_submit_sound_buffer;
+    platform_api->stop_sound_buffer   = win32_stop_sound_buffer;
+    platform_api->set_volume          = win32_set_volume;
+    platform_api->get_samples_left    = win32_get_samples_left;
     
     if (memory_size > 0)
     {

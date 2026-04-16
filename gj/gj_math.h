@@ -99,6 +99,7 @@ V3(f, f32);
         struct { type qw; type qx; type qy; type qz; }; \
         type array[4];                                  \
         type xyz[3];                                    \
+        V3##name rgb;                                   \
         V3##name v3;                                    \
         V2##name v2;                                    \
     } V4##name
