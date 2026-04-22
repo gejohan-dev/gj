@@ -81,16 +81,35 @@ V2(f, f32);
 V2(u, u32);
 V2(i, s32);
 
-#define V3(name, type)                          \
-    typedef union V3##name {                    \
-        struct { type x; type y; type z; };     \
-        struct { type r; type g; type b; };     \
-        type array[3];                          \
-        type a[3];                              \
-        type xy[2];                             \
-        V2##name v2;                            \
-    } V3##name
+#define V3(name, type)                                                  \
+    typedef union V3##name {                                            \
+        struct { type x; type y; type z; };                             \
+        struct { type r; type g; type b; };                             \
+        type array[3];                                                  \
+        type a[3];                                                      \
+        type xy[2];                                                     \
+        V2##name v2;                                                    \
+    } V3##name;                                                         \
+    inline V3##name V3_add      (V3##name v0, V3##name v1)       { V3##name v; v.x = (v0.x + v1.x); v.y = (v0.y + v1.y); v.z = (v0.z + v1.z); return v; } \
+    inline V3##name V3_add      (V3##name v0, type c)            { V3##name v; v.x = (v0.x + c); v.y = (v0.y + c); v.z = (v0.z + c); return v; } \
+    inline V3##name V3_add      (type c, V3##name v0)            { return V3_add(v0, c); } \
+    inline V3##name V3_sub      (V3##name v0, V3##name v1)       { V3##name v; v.x = (v0.x - v1.x); v.y = (v0.y - v1.y); v.z = (v0.z - v1.z); return v; } \
+    inline f32 V3_length        (V3##name v0)                    { return gj_sqrt((f32)(v0.x * v0.x + v0.y * v0.y + v0.z * v0.z)); } \
+    inline f32 V3_length        (type x, type y, type z)         { return gj_sqrt((f32)(x * x + y * y + z * z)); } \
+    inline V3##name V3_mul      (type x1, type y1, type z1,             \
+                                 type x2, type y2, type z2)      { V3##name v; v.x = (x1 * x2); v.y = (y1 * y2); v.z = (z1 * z2); return v; } \
+    inline V3##name V3_mul      (V3##name v0, V3##name v1)       { V3##name v; v.x = (v0.x * v1.x); v.y = (v0.y * v1.y); v.z = (v0.z * v1.z); return v; } \
+    inline V3##name V3_mul      (type c, V3##name v0)            { V3##name v; v.x = (c * v0.x); v.y = (c * v0.y); v.z = (c * v0.z); return v; } \
+    inline V3##name V3_mul      (V3##name v0, type c)            { return V3_mul(c, v0); } \
+    inline V3##name V3_mul      (type x, type y, type z, type c) { V3##name v; v.x = (c * x); v.y = (c * y); v.z = (c * z); return v; } \
+    inline V3##name V3_div      (V3##name v0, V3##name v1)       { V3##name v; v.x = (v0.x / v1.x); v.y = (v0.y / v1.y); v.z = (v0.z / v1.z); return v; } \
+    inline f32      V3_distance (V3##name v0, V3##name v1)       { return V3_length(V3_sub(v0, v1)); }
+
+
 V3(f, f32);
+V3(i, s32);
+inline V3i V3f_to_V3i_floor(V3f v) { return {gj_floor(v.x), gj_floor(v.y), gj_floor(v.z)}; }
+inline V3f V3i_to_V3f      (V3i v) { return {(f32)v.x, (f32)v.y, (f32)v.z}; }
 
 #define V4(name, type)                                  \
     typedef union V4##name {                            \
@@ -167,31 +186,6 @@ bool V2_point_on_triangle(V2f p, V2f t1, V2f t2, V2f t3)
     return result;
 }
 
-#if defined(__cplusplus)
-inline V3f V3_add        (V3f v0, V3f v1)             { V3f v; v.x = (v0.x + v1.x); v.y = (v0.y + v1.y); v.z = (v0.z + v1.z); return v; }
-inline V3f V3_add        (V3f v0, f32 c)              { V3f v; v.x = (v0.x + c); v.y = (v0.y + c); v.z = (v0.z + c); return v; }
-inline V3f V3_add        (f32 c, V3f v0)              { return V3_add(v0, c); }
-#else
-inline V3f V3_add        (V3f v0, V3f v1)             { V3f v; v.x = (v0.x + v1.x); v.y = (v0.y + v1.y); v.z = (v0.z + v1.z); return v; }
-#endif
-inline V3f V3_sub        (V3f v0, V3f v1)             { V3f v; v.x = (v0.x - v1.x); v.y = (v0.y - v1.y); v.z = (v0.z - v1.z); return v; }
-#if defined(__cplusplus)
-inline f32 V3_length     (V3f v0)                     { return gj_sqrt(v0.x * v0.x + v0.y * v0.y + v0.z * v0.z); }
-inline f32 V3_length     (f32 x, f32 y, f32 z)        { return gj_sqrt(x * x + y * y + z * z); }
-#else
-inline f32 V3_length     (V3f v0)                     { return gj_sqrt(v0.x * v0.x + v0.y * v0.y + v0.z * v0.z); }
-#endif
-#if defined(__cplusplus)
-inline V3f V3_mul        (f32 x1, f32 y1, f32 z1,
-                          f32 x2, f32 y2, f32 z2)     { V3f v; v.x = (x1 * x2); v.y = (y1 * y2); v.z = (z1 * z2); return v; }
-inline V3f V3_mul        (V3f v0, V3f v1)             { V3f v; v.x = (v0.x * v1.x); v.y = (v0.y * v1.y); v.z = (v0.z * v1.z); return v; }
-inline V3f V3_mul        (f32 c, V3f v0)              { V3f v; v.x = (c * v0.x); v.y = (c * v0.y); v.z = (c * v0.z); return v; }
-inline V3f V3_mul        (V3f v0, f32 c)              { return V3_mul(c, v0); }
-inline V3f V3_mul        (f32 x, f32 y, f32 z, f32 c) { V3f v; v.x = (c * x); v.y = (c * y); v.z = (c * z); return v; }
-#else
-inline V3f V3_mul        (f32 c, V3f v0)              { V3f v; v.x = (c * v0.x); v.y = (c * v0.y); v.z = (c * v0.z); return v; }
-#endif
-inline V3f V3_div        (V3f v0, V3f v1)             { V3f v; v.x = (v0.x / v1.x); v.y = (v0.y / v1.y); v.z = (v0.z / v1.z); return v; }
 inline V3f V3_normalize  (V3f v)
 {
     f32 l = V3_length(v);
@@ -208,9 +202,10 @@ inline V3f V3_normalize  (V3f v)
 inline f32 V3_dot        (V3f v0, V3f v1)             { return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z; }
 inline V3f V3_cross      (V3f v0, V3f v1)             { V3f v; v.x = (v0.y * v1.z - v0.z * v1.y); v.y = (v0.z * v1.x - v0.x * v1.z); v.z = (v0.x * v1.y - v0.y * v1.x); return v; }
 inline V3f V3_neg        (V3f v)                      { return {-v.x, -v.y, -v.z}; }
-inline f32 V3_distance   (V3f v0, V3f v1)             { return V3_length(V3_sub(v0, v1)); }
 inline b32 V3_equal      (V3f v0, V3f v1)             { return gj_float_eq(v0.x, v1.x) && gj_float_eq(v0.y, v1.y) && gj_float_eq(v0.z, v1.z); }
 inline V3f V3_lerp       (V3f v0, V3f v1, f32 f)      { return {gj_lerp(v0.x, v1.x, f), gj_lerp(v0.y, v1.y, f), gj_lerp(v0.z, v1.z, f)}; }
+
+inline b32 V3_equal      (V3i v0, V3i v1)             { return v0.x == v1.x && v0.y == v1.y && v0.z == v1.z; }
 
 inline V2f V3_xz(V3f v) { return {v.x, v.z}; }
 inline V4f V3_to_V4(V3f v, f32 w) { return {v.x, v.y, v.z, w}; }
@@ -1034,6 +1029,11 @@ b32 V3_box_contains_point(V3f box_start, V3f box_end, V3f pos)
     return (gj_Abs(V3_dot(d, dx)) <= box_half.x &&
             gj_Abs(V3_dot(d, dy)) <= box_half.y &&
             gj_Abs(V3_dot(d, dz)) <= box_half.z);
+}
+
+b32 V3_box_contains_point(V3i box_start, V3i box_end, V3i pos)
+{
+    return V3_box_contains_point(V3i_to_V3f(box_start), V3i_to_V3f(box_end), V3i_to_V3f(pos));
 }
 
 V3f V3f_get_mouse_ray(M4x4 inverse_model_view_matrix, M4x4 inverse_projection_matrix,
