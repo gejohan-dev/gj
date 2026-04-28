@@ -103,12 +103,14 @@ V2(i, s32);
     inline V3##name V3_mul      (V3##name v0, type c)            { return V3_mul(c, v0); } \
     inline V3##name V3_mul      (type x, type y, type z, type c) { V3##name v; v.x = (c * x); v.y = (c * y); v.z = (c * z); return v; } \
     inline V3##name V3_div      (V3##name v0, V3##name v1)       { V3##name v; v.x = (v0.x / v1.x); v.y = (v0.y / v1.y); v.z = (v0.z / v1.z); return v; } \
-    inline f32      V3_distance (V3##name v0, V3##name v1)       { return V3_length(V3_sub(v0, v1)); }
-
+    inline f32      V3_distance (V3##name v0, V3##name v1)       { return V3_length(V3_sub(v0, v1)); } \
+    inline type     V3_dot      (V3##name v0, V3##name v1)       { return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z; } \
+    inline V2##name V3_xz       (V3##name v)                     { return {v.x, v.z}; }
 
 V3(f, f32);
 V3(i, s32);
 inline V3i V3f_to_V3i_floor(V3f v) { return {gj_floor(v.x), gj_floor(v.y), gj_floor(v.z)}; }
+inline V3i V3f_to_V3i_round(V3f v) { return {gj_round(v.x), gj_round(v.y), gj_round(v.z)}; }
 inline V3f V3i_to_V3f      (V3i v) { return {(f32)v.x, (f32)v.y, (f32)v.z}; }
 
 #define V4(name, type)                                  \
@@ -165,9 +167,7 @@ f32 V2_triangle_area(V2f t1, V2f t2, V2f t3)
     return result;
 }
 
-inline V3f V3_sub(V3f,V3f);
 inline V3f V3_cross(V3f,V3f);
-inline f32 V3_dot(V3f,V3f);
 bool _same_side(V2f p1, V2f p2, V2f a, V2f b)
 {
     bool result;
@@ -199,7 +199,6 @@ inline V3f V3_normalize  (V3f v)
     }
     return v;
 }
-inline f32 V3_dot        (V3f v0, V3f v1)             { return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z; }
 inline V3f V3_cross      (V3f v0, V3f v1)             { V3f v; v.x = (v0.y * v1.z - v0.z * v1.y); v.y = (v0.z * v1.x - v0.x * v1.z); v.z = (v0.x * v1.y - v0.y * v1.x); return v; }
 inline V3f V3_neg        (V3f v)                      { return {-v.x, -v.y, -v.z}; }
 inline b32 V3_equal      (V3f v0, V3f v1)             { return gj_float_eq(v0.x, v1.x) && gj_float_eq(v0.y, v1.y) && gj_float_eq(v0.z, v1.z); }
@@ -207,7 +206,6 @@ inline V3f V3_lerp       (V3f v0, V3f v1, f32 f)      { return {gj_lerp(v0.x, v1
 
 inline b32 V3_equal      (V3i v0, V3i v1)             { return v0.x == v1.x && v0.y == v1.y && v0.z == v1.z; }
 
-inline V2f V3_xz(V3f v) { return {v.x, v.z}; }
 inline V4f V3_to_V4(V3f v, f32 w) { return {v.x, v.y, v.z, w}; }
 
 V3f V3_triangle_normal(V3f p1, V3f p2, V3f p3)
@@ -376,6 +374,20 @@ V2_rectangle_contains_point(V2f rectangle_start, V2f rectangle_end, V2f point)
             gj_float_geq(r_max_x, point.x) &&
             gj_float_leq(r_min_y, point.y) &&
             gj_float_geq(r_max_y, point.y));
+}
+
+inline b32
+V2_rectangle_contains_point(V2i rectangle_start, V2i rectangle_end, V2i point)
+{
+    s32 r_min_x = gj_Min(rectangle_start.x, rectangle_end.x);
+    s32 r_max_x = gj_Max(rectangle_start.x, rectangle_end.x);
+    s32 r_min_y = gj_Min(rectangle_start.y, rectangle_end.y);
+    s32 r_max_y = gj_Max(rectangle_start.y, rectangle_end.y);
+    
+    return (r_min_x <= point.x &&
+            r_max_x >= point.x &&
+            r_min_y <= point.y &&
+            r_max_y >= point.y);
 }
 
 inline b32
@@ -1133,6 +1145,12 @@ b32 ray_box_intersection(V3f ray_origin, V3f ray_direction,
         *hit_pos = V3_add(ray_origin, V3_mul(t_close, ray_direction));
     }
     return t_close >= 0.0f && gj_float_leq(t_close, t_far);
+}
+
+b32 ray_box_intersection(V3f ray_origin, V3f ray_direction,
+                         V3f box_min, V3f box_max)
+{
+    return ray_box_intersection(ray_origin, ray_direction, box_min, box_max, NULL);
 }
 
 ///////////////////////////////////////////////////////////////////////////
